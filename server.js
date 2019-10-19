@@ -18,11 +18,26 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.get('/', (_req, res) => {
-    res.status(200).send('Connected to server');
+    const intro = `
+    <h2>Real-time polls server</h2>
+    Client: <a href="https://public.colo18.now.sh">https://public.colo18.now.sh</a>
+    \n
+    <h3>Commands:</h3>
+    <ul>
+        <li>POST /add?name=TestName - add new session and returns session id</li>
+        <li>GET /sessions - returns JSON with sessns id and names</li>
+        <li>POST /start?id=45 - start session by id</li>
+        <li>POST /stop?id=45 - stop session by id</li>
+        <li>GET /results?id=45 - returns .txt file with results</li>
+        <li>GET /current - return current session id</li>
+    </ul>
+    `;
+    res.status(200).send(intro);
 })
 
 app.post('/results', (req, res) => {
     var {sessionId, fa, ca, ia, fd, cd ,id, username} = req.body;
+    console.log(req.body);
     if (parseInt(sessionId)!== parseInt(currentSession)) {
         // console.log('Session hasn`t started yet');
         // console.log('Expected: ', currentSession, '\nAcutal: ', sessionId);
@@ -59,7 +74,6 @@ app.post('/start', (req, res) => {
 
 app.post('/stop', (req, res) => {
     const sessionId = req.body.id;
-    console.log(sessionId, currentSession);
     if (parseInt(sessionId) !== parseInt(currentSession)) {
         // console.log('You can not stop non-active session');
         res.status(403).send(`Can't stop session because session not in progress\n`);
@@ -100,9 +114,25 @@ app.post('/add', (req, res) => {
     sessions.push({id, name});
     sessionsId.push(id);
 
-    console.log(sessions);
+    // console.log(sessions);
 
-    res.sendStatus(200);
+    res.status(200).send({id});
+})
+
+app.get('/files', (res, req) => {
+    var filesList = [];
+    fs.readdir(__dirname, function (err, files) {
+        if (err) {
+            return console.log('Unable to scan directory: ' + err);
+        } 
+        files.forEach(function (file) {
+            console.log(file)
+            if (file.endsWith('.txt')) {
+                filesList.push(file); 
+            }
+        });
+        req.send(filesList);
+    });
 })
 
 app.listen(port, () => {
