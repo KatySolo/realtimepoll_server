@@ -80,20 +80,21 @@ app.post('/stop', (req, res) => {
     } else {
         currentSession = -1;
         // console.log('Stopping session ',sessionId);
-        fs.writeFile(sessionId+".txt", JSON.stringify(results[sessionId]), function(err) {
+        fs.writeFile(__dirname+'/results/'+sessionId+".txt", JSON.stringify(results[sessionId]), function(err) {
             if (err) {
                 console.log(err);
             }
         });
-        res.status(200).send(`Session with id=${sessionId} has stoped.\nTo get session``s results, use command /results?id=${sessionId}\n`);
+        res.sendStatus(200);
+        // res.status(200).send(`Session with id=${sessionId} has stoped.\nTo get session``s results, use command /results?id=${sessionId}\n`);
     }
 });
 
 app.get('/results', (req, res) => {
     sessionId = req.query.id;
-    const path = __dirname+'/'+sessionId+'.txt'; 
+    const path = __dirname+'/results/'+sessionId+'.txt'; 
     if (fs.existsSync(path)){
-        res.download(__dirname+'/'+sessionId+'.txt');
+        res.download(__dirname + '/results/' + sessionId+'.txt');
     } else {
         // console.log('Session has not finished yet');
         res.status(404).send('Session has not finished yet\n');
@@ -119,9 +120,9 @@ app.post('/add', (req, res) => {
     res.status(200).send({id});
 })
 
-app.get('/files', (res, req) => {
+app.get('/files', (_res, req) => {
     var filesList = [];
-    fs.readdir(__dirname, function (err, files) {
+    fs.readdir(__dirname+'/results', function (err, files) {
         if (err) {
             return console.log('Unable to scan directory: ' + err);
         } 
