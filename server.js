@@ -17,6 +17,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+app.get('/', (_req, res) => {
+    res.status(200).send('Connected to server');
+})
 
 app.post('/results', (req, res) => {
     var {sessionId, fa, ca, ia, fd, cd ,id, username} = req.body;
