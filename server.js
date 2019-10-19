@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 var cors = require('cors');
 var bodyParser = require("body-parser");
+var port = process.env.PORT || 8080;
 
 let sessions = [{id: 45, name: 'Катя'}, {id: 88, name: 'Рома'}];
 let sessionsId = [45,88];
@@ -101,8 +102,8 @@ app.post('/add', (req, res) => {
     res.sendStatus(200);
 })
 
-app.listen(8080, () => {
-    console.log('App started and available at http://localhost:8080');
+app.listen(port, () => {
+    console.log(`App started and available at port ${port}`);
   });
 
    // curl -d "name=Mарк" -X POST http://localhost:8080/add
