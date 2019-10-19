@@ -84,7 +84,9 @@ app.post('/stop', (req, res) => {
         // console.log('Stopping session ',sessionId);
         fs.writeFile(__dirname+'/results/'+sessionId+".txt", JSON.stringify(results[sessionId]), function(err) {
             if (err) {
-                console.log(err);
+                fs.mkdir(__dirname+'/results', () => {
+                    fs.writeFile(__dirname+'/results/'+sessionId+".txt", JSON.stringify(results[sessionId]), () => {})
+                });
             }
         });
         res.sendStatus(200);
