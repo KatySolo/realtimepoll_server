@@ -3,6 +3,8 @@ const path = require('path');
 const fs = require('fs');
 var cors = require('cors');
 var bodyParser = require("body-parser");
+var rimraf = require('rimraf');
+
 var port = process.env.PORT || 8080;
 
 let sessions = [{id: 45, name: 'Катя'}, {id: 88, name: 'Рома'}];
@@ -134,6 +136,10 @@ app.get('/files', (_res, req) => {
         });
         req.send(filesList);
     });
+})
+
+app.get('/clean', (_res, req) => {
+    rimraf(__dirname+'/results', () => req.status(200).send('All results are deleted'));
 })
 
 app.listen(port, () => {
