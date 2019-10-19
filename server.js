@@ -103,7 +103,7 @@ app.get('/results', (req, res) => {
     }
 })
 
-app.get('/current', (req,res) => {
+app.get('/current', (_req,res) => {
     res.send({id: currentSession});
 })
 
@@ -122,24 +122,25 @@ app.post('/add', (req, res) => {
     res.status(200).send({id});
 })
 
-app.get('/files', (_res, req) => {
+app.get('/files', (_req, res) => {
     var filesList = [];
-    fs.readdir(__dirname+'/results', function (err, files) {
-        if (err) {
-            return console.log('Unable to scan directory: ' + err);
-        } 
-        files.forEach(function (file) {
-            console.log(file)
-            if (file.endsWith('.txt')) {
-                filesList.push(file); 
-            }
+    if (fs.existsSync(__dirname+'/results')) {
+        fs.readdir(__dirname+'/results', function (err, files) {
+            files.forEach(function (file) {
+                console.log(file)
+                if (file.endsWith('.txt')) {
+                    filesList.push(file); 
+                }
+            });
+            res.send(filesList);
         });
-        req.send(filesList);
-    });
+    } else {
+        res.send([]);
+    }
 })
 
-app.get('/clean', (_res, req) => {
-    rimraf(__dirname+'/results', () => req.status(200).send('All results are deleted'));
+app.get('/clean', (_req, res) => {
+    rimraf(__dirname+'/results', () => res.status(200).send('All results are deleted'));
 })
 
 app.listen(port, () => {
