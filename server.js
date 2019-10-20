@@ -21,17 +21,17 @@ app.use(bodyParser.json());
 
 app.get('/', (_req, res) => {
     const intro = `
-    <h2>Real-time polls server</h2>
-    Client: <a href="https://public.colo18.now.sh">https://public.colo18.now.sh</a>
+    <h2>Сервер для создания и проведения опросов в реальном времени </h2>
+    Адрес клиента: <a href="https://public.colo18.now.sh">https://public.colo18.now.sh</a>
     \n
-    <h3>Commands:</h3>
+    <h3>Список команд:</h3>
     <ul>
-        <li>POST /add?name=TestName - add new session and returns session id</li>
-        <li>GET /sessions - returns JSON with sessns id and names</li>
-        <li>POST /start?id=45 - start session by id</li>
-        <li>POST /stop?id=45 - stop session by id</li>
-        <li>GET /results?id=45 - returns .txt file with results</li>
-        <li>GET /current - return current session id</li>
+        <li>POST /add?name=TestName - добавление новой сессии про имени, возвращается id сессии</li>
+        <li>GET /sessions - получить объект со всеми сессиями</li>
+        <li>POST /start?id=45 - начать сессию</li>
+        <li>POST /stop?id=45 - остановить сессию</li>
+        <li>GET /results?id=45 - получение результатов сессии в формате .txt</li>
+        <li>GET /current - узнать текущую сессию</li>
     </ul>
     `;
     res.status(200).send(intro);
@@ -41,9 +41,7 @@ app.post('/results', (req, res) => {
     var {sessionId, fa, ca, ia, fd, cd ,id, username} = req.body;
     console.log(req.body);
     if (parseInt(sessionId)!== parseInt(currentSession)) {
-        // console.log('Session hasn`t started yet');
-        // console.log('Expected: ', currentSession, '\nAcutal: ', sessionId);
-        res.status(403).send('Session has not started yet');
+        res.status(403).send('Опрос еще не начался');
     } else {
         let curResults = results[sessionId];
         let userResults = {name: username, fa, ca, ia, fd, cd, id};
@@ -52,13 +50,11 @@ app.post('/results', (req, res) => {
         } else {
             results[sessionId] = [userResults];
         }
-        // console.log('Saving answers for a session', sessionId, username);
-        res.status(200).send(`Dear ${username}, your answer is accepted\n`);
+        res.status(200).send(`${username}, ваш ответ принят\n`);
     }
 })
 
 app.get('/sessions', (_req, res) => {
-    console.log('Sending all sessions');
     res.send(sessions);
 })
 
@@ -66,22 +62,19 @@ app.post('/start', (req, res) => {
     const sessionId = req.body.id;
     if (sessionsId.indexOf(parseInt(sessionId)) !== -1) {
         currentSession = sessionId;
-        // console.log('Starting session ',sessionId);
-        res.status(200).send(`Starting session: ${sessionId}\n`);
+        res.status(200).send(`Начинаем опрос: ${sessionId}\n`);
     } else {
         // console.log('No such session');
-        res.status(404).send(`Session with id=${sessionId} do not exist.\nCreate it by query /add?name=...\n`);
+        res.status(404).send(`Опрос id=${sessionId} не существует.\nСоздайте его POST запросом /add?name=newName\n`);
     }
 })
 
 app.post('/stop', (req, res) => {
     const sessionId = req.body.id;
     if (parseInt(sessionId) !== parseInt(currentSession)) {
-        // console.log('You can not stop non-active session');
-        res.status(403).send(`Can't stop session because session not in progress\n`);
+        res.status(403).send(`Невозможно остановить опрос, так как он еще не был начат.\n`);
     } else {
         currentSession = -1;
-        // console.log('Stopping session ',sessionId);
         fs.writeFile(__dirname+'/results/'+sessionId+".txt", JSON.stringify(results[sessionId]), function(err) {
             if (err) {
                 fs.mkdir(__dirname+'/results', () => {
@@ -89,8 +82,7 @@ app.post('/stop', (req, res) => {
                 });
             }
         });
-        res.sendStatus(200);
-        // res.status(200).send(`Session with id=${sessionId} has stoped.\nTo get session``s results, use command /results?id=${sessionId}\n`);
+        res.status(200).send(`Опрос id=${sessionId} останевлен.\nЧтобы получить результаты, используйте GET запрос /results?id=${sessionId}\n`);
     }
 });
 
@@ -100,8 +92,7 @@ app.get('/results', (req, res) => {
     if (fs.existsSync(path)){
         res.download(__dirname + '/results/' + sessionId+'.txt');
     } else {
-        // console.log('Session has not finished yet');
-        res.status(404).send('Session has not finished yet\n');
+        res.status(404).send('Опрос еще не завершен.\n');
     }
 })
 
@@ -118,8 +109,6 @@ app.post('/add', (req, res) => {
     }
     sessions.push({id, name});
     sessionsId.push(id);
-
-    // console.log(sessions);
 
     res.status(200).send({id});
 })
@@ -142,11 +131,11 @@ app.get('/files', (_req, res) => {
 })
 
 app.get('/clean', (_req, res) => {
-    rimraf(__dirname+'/results', () => res.status(200).send('All results are deleted'));
+    rimraf(__dirname+'/results', () => res.status(200).send('Все результаты удалены.'));
 })
 
 app.listen(port, () => {
-    console.log(`App started and available at port ${port}`);
+    console.log(`Приложение запущенно на порту ${port}`);
   });
 
    // curl -d "name=Mарк" -X POST http://localhost:8080/add
