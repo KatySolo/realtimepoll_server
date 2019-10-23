@@ -7,8 +7,8 @@ var rimraf = require('rimraf');
 
 var port = process.env.PORT || 8080;
 
-let sessions = [{id: 45, name: 'Катя'}, {id: 88, name: 'Рома'}];
-let sessionsId = [45,88];
+let sessions = [{id: 45, name: 'Катя'}];
+let sessionsId = [45];
 var currentSession = -1;
 var results = {};
 
