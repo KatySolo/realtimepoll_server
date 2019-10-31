@@ -169,7 +169,6 @@ app.listen(port, () => {
     console.log(`Приложение запущенно на порту ${port}`);
 });
 
-   // curl -d "name=Mарк" -X POST http://localhost:8080/add
-    // nodemon ./server.js localhost 8080
+// curl -d "name=Mарк" -X POST http://localhost:8080/add
 
 module.exports = app;
