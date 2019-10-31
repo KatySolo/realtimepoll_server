@@ -7,8 +7,8 @@ var rimraf = require('rimraf');
 
 var port = process.env.PORT || 8080;
 
-let sessions = [{id: 45, name: 'Катя'}];
-let sessionsId = [45];
+let sessions = [{id: 66, name: 'test'}, {id: 45, name: 'Катя'}];
+let sessionsId = [45,66];
 var currentSession = -1;
 var results = {};
 
@@ -38,19 +38,23 @@ app.get('/', (_req, res) => {
 })
 
 app.post('/results', (req, res) => {
-    var {sessionId, fa, ca, ia, fd, cd ,id, username} = req.body;
+    var {sessionId, form, content, interest, username, comment, lector} = req.body; 
     console.log(req.body);
-    if (parseInt(sessionId)!== parseInt(currentSession)) {
-        res.status(403).send('Опрос еще не начался');
-    } else {
-        let curResults = results[sessionId];
-        let userResults = {name: username, fa, ca, ia, fd, cd, id};
-        if (curResults) {
-            results[sessionId].push(userResults);
+    try {
+        if (parseInt(sessionId)!== parseInt(currentSession)) {
+            res.status(403).send('Опрос еще не начался');
         } else {
-            results[sessionId] = [userResults];
+            let curResults = results[sessionId];
+            let userResults = {name: username, form, content, interest, comment, isLector: lector === 'on' ? true : false};
+            if (curResults) {
+                results[sessionId].push(userResults);
+            } else {
+                results[sessionId] = [userResults];
+            }
+            res.status(200).send(`${username}, ваш ответ принят\n`);
         }
-        res.status(200).send(`${username}, ваш ответ принят\n`);
+    } catch(err) {
+        res.send('Произошла ошибка на сервере');
     }
 })
 
@@ -62,9 +66,9 @@ app.post('/start', (req, res) => {
     const sessionId = req.body.id;
     if (sessionsId.indexOf(parseInt(sessionId)) !== -1) {
         currentSession = sessionId;
+        // res.setHeader("Content-Type", "text/plain");
         res.status(200).send(`Начинаем опрос: ${sessionId}\n`);
     } else {
-        // console.log('No such session');
         res.status(404).send(`Опрос id=${sessionId} не существует.\nСоздайте его POST запросом /add?name=newName\n`);
     }
 })
@@ -75,16 +79,43 @@ app.post('/stop', (req, res) => {
         res.status(403).send(`Невозможно остановить опрос, так как он еще не был начат.\n`);
     } else {
         currentSession = -1;
-        fs.writeFile(__dirname+'/results/'+sessionId+".txt", JSON.stringify(results[sessionId]), function(err) {
+        const result = performCalc(results[sessionId]);
+        fs.writeFile(__dirname+'/results/'+sessionId+".txt", JSON.stringify(result), function(err) {
             if (err) {
                 fs.mkdir(__dirname+'/results', () => {
-                    fs.writeFile(__dirname+'/results/'+sessionId+".txt", JSON.stringify(results[sessionId]), () => {})
+                    fs.writeFile(__dirname+'/results/'+sessionId+".txt", JSON.stringify(result), () => {})
                 });
             }
         });
         res.status(200).send(`Опрос id=${sessionId} останевлен.\nЧтобы получить результаты, используйте GET запрос /results?id=${sessionId}\n`);
     }
 });
+
+function performCalc(results) {
+    if (results === undefined) return {};
+    
+    let lectorResult = {};
+    let listenersResults = {form: 0, content: 0, interest: 0};
+    let comments = {};
+
+    results.forEach(result => {
+        if (result.isLector) {
+            lectorResult = result;
+        } else {
+            listenersResults.form += result.form;
+            listenersResults.content += result.content;
+            listenersResults.interest += result.interest;
+        }
+        comments[results.username] = results.comment;
+    });
+
+    listenersResults.form = istenersResults.form / (results.length - 1);
+    listenersResults.content = istenersResults.content / (results.length - 1);
+    listenersResults.interest = istenersResults.interest / (results.length - 1);
+
+    return {lector: lectorResult, results: listenersResults, comments}
+
+}
 
 app.get('/results', (req, res) => {
     sessionId = req.query.id;
@@ -136,7 +167,9 @@ app.get('/clean', (_req, res) => {
 
 app.listen(port, () => {
     console.log(`Приложение запущенно на порту ${port}`);
-  });
+});
 
    // curl -d "name=Mарк" -X POST http://localhost:8080/add
     // nodemon ./server.js localhost 8080
+
+module.exports = app;
