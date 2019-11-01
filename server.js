@@ -7,10 +7,33 @@ var rimraf = require('rimraf');
 
 var port = process.env.PORT || 8080;
 
-let sessions = [{id: 66, name: 'test'}, {id: 45, name: 'Катя'}];
-let sessionsId = [45,66];
+let sessions = [{id: 17, name: "Арина (Методы атак и защиты веб-приложений)"}, {id: 24, name: "Андрей (Особенности гос. регулирования Интернета)"}];
+let sessionsId = [17, 24];
 var currentSession = -1;
 var results = {};
+
+const testData = [{
+    "name":"Солодовникова Екатерина",
+    "form":"6",
+    "content":"7",
+    "interest":"3",
+    "comment":"Все было очень душевно и качественно",
+    "isLector":true
+},{
+    "name":"Боб Джонстон",
+    "form":"7",
+    "content":"6",
+    "interest":"2",
+    "comment":"Абсолютная чушь!\r\n",
+    "isLector":false
+},{
+    "name":"Марк",
+    "form":"10",
+    "content":"7",
+    "interest":"4",
+    "comment":"Уже лучше\r\n",
+    "isLector":false
+}]
 
 const app = express();
 
@@ -66,7 +89,6 @@ app.post('/start', (req, res) => {
     const sessionId = req.body.id;
     if (sessionsId.indexOf(parseInt(sessionId)) !== -1) {
         currentSession = sessionId;
-        // res.setHeader("Content-Type", "text/plain");
         res.status(200).send(`Начинаем опрос: ${sessionId}\n`);
     } else {
         res.status(404).send(`Опрос id=${sessionId} не существует.\nСоздайте его POST запросом /add?name=newName\n`);
@@ -80,10 +102,10 @@ app.post('/stop', (req, res) => {
     } else {
         currentSession = -1;
         const result = performCalc(results[sessionId]);
-        fs.writeFile(__dirname+'/results/'+sessionId+".txt", JSON.stringify(result), function(err) {
+        fs.writeFile(__dirname+'/results/'+sessionId+".json", JSON.stringify(result), function(err) {
             if (err) {
                 fs.mkdir(__dirname+'/results', () => {
-                    fs.writeFile(__dirname+'/results/'+sessionId+".txt", JSON.stringify(result), () => {})
+                    fs.writeFile(__dirname+'/results/'+sessionId+".json", JSON.stringify(result), () => {})
                 });
             }
         });
@@ -92,6 +114,7 @@ app.post('/stop', (req, res) => {
 });
 
 function performCalc(results) {
+
     if (results === undefined) return {};
     
     let lectorResult = {};
@@ -102,26 +125,42 @@ function performCalc(results) {
         if (result.isLector) {
             lectorResult = result;
         } else {
-            listenersResults.form += result.form;
-            listenersResults.content += result.content;
-            listenersResults.interest += result.interest;
+            listenersResults.form += parseInt(result.form)
+            listenersResults.content += parseInt(result.content);
+            listenersResults.interest += parseInt(result.interest);
         }
-        comments[results.username] = results.comment;
+        comments[result.name] = result.comment;
     });
 
-    listenersResults.form = istenersResults.form / (results.length - 1);
-    listenersResults.content = istenersResults.content / (results.length - 1);
-    listenersResults.interest = istenersResults.interest / (results.length - 1);
+    listenersResults.form = listenersResults.form / (results.length - 1);
+    listenersResults.content = listenersResults.content / (results.length - 1);
+    listenersResults.interest = listenersResults.interest / (results.length - 1);
 
-    return {lector: lectorResult, results: listenersResults, comments}
+    const delta = {
+        form: Math.abs(lectorResult.form - listenersResults.form),
+        content: Math.abs(lectorResult.content - listenersResults.content),
+        interest: Math.abs(lectorResult.interest - listenersResults.interest)
+    }
+    return {
+        lector: {
+            name: lectorResult.name, 
+            form: lectorResult.form,
+            content: lectorResult.content,
+            interest: lectorResult.interest
+        }, 
+        results: listenersResults, 
+        delta,
+        comments,
+        rawResults: results
+    }
 
 }
 
 app.get('/results', (req, res) => {
     sessionId = req.query.id;
-    const path = __dirname+'/results/'+sessionId+'.txt'; 
+    const path = __dirname+'/results/'+sessionId+'.json'; 
     if (fs.existsSync(path)){
-        res.download(__dirname + '/results/' + sessionId+'.txt');
+        res.download(__dirname + '/results/' + sessionId+'.json');
     } else {
         res.status(404).send('Опрос еще не завершен.\n');
     }
@@ -170,5 +209,4 @@ app.listen(port, () => {
 });
 
 // curl -d "name=Mарк" -X POST http://localhost:8080/add
-
 module.exports = app;
