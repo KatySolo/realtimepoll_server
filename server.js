@@ -9,7 +9,7 @@ var port = process.env.PORT || 8080;
 
 let sessions = [{id: 17, name: "Арина (Методы атак и защиты веб-приложений)"}, {id: 24, name: "Андрей (Особенности гос. регулирования Интернета)"}];
 let sessionsId = [17, 24];
-var currentSession = -1;
+var currentSessions = [];
 var results = {};
 
 const testData = [{
@@ -64,7 +64,7 @@ app.post('/results', (req, res) => {
     var {sessionId, form, content, interest, username, comment, lector} = req.body; 
     console.log(req.body);
     try {
-        if (parseInt(sessionId)!== parseInt(currentSession)) {
+        if (currentSessions.indexOf(parseInt(sessionId)) === -1) {
             res.status(403).send('Опрос еще не начался');
         } else {
             let curResults = results[sessionId];
@@ -88,7 +88,7 @@ app.get('/sessions', (_req, res) => {
 app.post('/start', (req, res) => {
     const sessionId = req.body.id;
     if (sessionsId.indexOf(parseInt(sessionId)) !== -1) {
-        currentSession = sessionId;
+        currentSessions.push(parseInt(sessionId));
         res.status(200).send(`Начинаем опрос: ${sessionId}\n`);
     } else {
         res.status(404).send(`Опрос id=${sessionId} не существует.\nСоздайте его POST запросом /add?name=newName\n`);
@@ -97,10 +97,10 @@ app.post('/start', (req, res) => {
 
 app.post('/stop', (req, res) => {
     const sessionId = req.body.id;
-    if (parseInt(sessionId) !== parseInt(currentSession)) {
+    if (currentSessions.indexOf(parseInt(sessionId)) === -1) {
         res.status(403).send(`Невозможно остановить опрос, так как он еще не был начат.\n`);
     } else {
-        currentSession = -1;
+        currentSessions.splice(currentSessions.indexOf(parseInt(sessionId)), 1);
         const result = performCalc(results[sessionId]);
         fs.writeFile(__dirname+'/results/'+sessionId+".json", JSON.stringify(result), function(err) {
             if (err) {
@@ -167,7 +167,7 @@ app.get('/results', (req, res) => {
 })
 
 app.get('/current', (_req,res) => {
-    res.send({id: currentSession});
+    res.send({id: currentSessions});
 })
 
 app.post('/add', (req, res) => {
@@ -189,7 +189,7 @@ app.get('/files', (_req, res) => {
         fs.readdir(__dirname+'/results', function (err, files) {
             files.forEach(function (file) {
                 console.log(file)
-                if (file.endsWith('.txt')) {
+                if (file.endsWith('.json')) {
                     filesList.push(file); 
                 }
             });
