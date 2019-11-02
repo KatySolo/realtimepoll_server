@@ -1,4 +1,13 @@
 import {Request, Response} from 'express';
+import {
+    SessionType,
+    ResultsType,
+    PersonDataType,
+    SessionDataType,
+    LectorResultType,
+    ListenersResultType,
+    CommentsType
+} from './types'
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -8,26 +17,10 @@ var rimraf = require('rimraf');
 
 var port = process.env.PORT || 8080;
 
-type SessionType = {
-    id: number,
-    name: string
-}
 let sessions: SessionType[] = [{id: 17, name: "Арина (Методы атак и защиты веб-приложений)"}, {id: 24, name: "Андрей (Особенности гос. регулирования Интернета)"}];
 let sessionsId: number[] = [17, 24];
 var currentSessions: number[] = [];
 var results: ResultsType = null;
-
-type SessionDataType = {
-    lector: LectorResultType,
-    results: ListenersResultType,
-    delta: ListenersResultType,
-    coments: CommentsType,
-    rawResults: PersonDataType[]
-}
-
-type ResultsType = {
-    [key: string]: PersonDataType[] 
-}
 
 const testData = [{
     "name":"Солодовникова Екатерина",
@@ -129,32 +122,6 @@ app.post('/stop', (req: Request, res: Response) => {
         res.status(200).send(`Опрос id=${sessionId} останевлен.\nЧтобы получить результаты, используйте GET запрос /results?id=${sessionId}\n`);
     }
 });
-
-type LectorResultType = {
-    name: string,
-    form: string,
-    content: string,
-    interest: string;
-}
-
-type ListenersResultType = {
-    form: number,
-    content: number,
-    interest: number;
-}
-
-type CommentsType = {
-    [key: string]: string
-}
-
-type PersonDataType = {
-    name: string,
-    form: string;
-    content: string,
-    interest: string,
-    comment: string,
-    isLector: boolean
-}
 
 function performCalc(results: PersonDataType[]): SessionDataType {
 
