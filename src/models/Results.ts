@@ -1,18 +1,32 @@
-import {Table, Column, Model, PrimaryKey, DataType, AutoIncrement} from 'sequelize-typescript';
+import {Table, Column, Model, PrimaryKey, DataType, AutoIncrement, ForeignKey, BelongsTo} from 'sequelize-typescript';
+import { User } from './User';
+import { Session } from './Session';
 
-@Table
-class Results extends Model<Results> {
+@Table({
+    createdAt: false,
+    updatedAt: false
+})
+export class Results extends Model<Results> {
 
-    @Column(DataType.INTEGER)
-    @PrimaryKey
     @AutoIncrement
+    @Column(DataType.INTEGER)
     id: number
 
-    @Column(DataType.INTEGER)
+    @PrimaryKey
+    @ForeignKey(() => Session)
+    @Column
     sessionId: number;
+ 
+    @BelongsTo(() => Session)
+    session: Session;
 
-    @Column(DataType.INTEGER)
+    @PrimaryKey
+    @ForeignKey(() => User)
+    @Column
     userId: number;
+ 
+    @BelongsTo(() => User)
+    user: User;
 
     @Column(DataType.INTEGER)
     form: number;

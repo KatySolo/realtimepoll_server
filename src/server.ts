@@ -8,6 +8,12 @@ import {
     ListenersResultType,
     CommentsType
 } from './types'
+import { Sequelize } from 'sequelize-typescript';
+import { Op } from 'sequelize';
+import { User } from './models/User';
+import { Results } from './models/Results';
+import { Session } from './models/Session';
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -18,8 +24,8 @@ var rimraf = require('rimraf');
 var port = process.env.PORT || 8080;
 
 let sessions: SessionType[] = [{id: 17, name: "Арина (Методы атак и защиты веб-приложений)"}, {id: 24, name: "Андрей (Особенности гос. регулирования Интернета)"}];
-let sessionsId: number[] = [17, 24];
-var currentSessions: number[] = [];
+// let sessionsId: number[] = [17, 24];
+// var currentSessions: number[] = [];
 var results: ResultsType = null;
 
 const testData = [{
@@ -45,12 +51,37 @@ const testData = [{
     "isLector":false
 }]
 
+let sequelize = new Sequelize("postgres://lamravjy:l2leG_C0dEUZGhcuiT3zRpVkU4bLwJZn@rogue.db.elephantsql.com:5432/lamravjy");
+sequelize.addModels([User, Session, Results]);
+sequelize.sync();
+
 const app = express();
 
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+
+app.post('/session', (req: Request, res: Response) => {
+    // TODO get params from req
+    User.findOne({
+        attributes: ['id'],
+        where: {
+            name: 'Солодовникова Екатерина'
+        }
+    }).then(res => {
+        const userId = res.id;
+        Session.create({
+            title: 'Great session',
+            lectorId: userId,
+            start: new Date(2020, 3, 5, 12, 10),
+            finish: new Date(2020, 3, 5, 16, 10)
+        })
+        .then(res => {
+            console.log(res.id);
+        })
+    })
+})
 
 app.get('/', (_req: Request, res: Response) => {
     const intro = `
@@ -68,60 +99,87 @@ app.get('/', (_req: Request, res: Response) => {
     </ul>
     `;
     res.status(200).send(intro);
-})
+}),
 
 app.post('/results', (req: Request, res: Response) => {
+    // TODO add input format type
     var {sessionId, form, content, interest, username, comment, lector} = req.body; 
     console.log(req.body);
-    try {
-        if (currentSessions.indexOf(parseInt(sessionId)) === -1) {
+    let currentSessions: number[] = [];
+    let userId: number = 0;
+    Session.findAll({
+        attributes: ['id'],
+        where: {
+            start: {
+                [Op.lt]: new Date()
+            },
+            finish: {
+                [Op.gt]: new Date()
+            }
+        }})
+    .then(res => {
+        currentSessions = res.map(a => a.id);
+    });
+
+    User.findOne({
+        attributes: ['id'],
+        where: {
+            name: username
+        }
+    }).then(user => {
+        userId = user.id;
+        if (currentSessions.find(sessionId) === undefined) {
             res.status(403).send('Опрос еще не начался');
         } else {
-            let curResults = results[sessionId];
-            let userResults = {name: username, form, content, interest, comment, isLector: lector === 'on' ? true : false};
-            if (curResults) {
-                results[sessionId].push(userResults);
-            } else {
-                results[sessionId] = [userResults];
-            }
-            res.status(200).send(`${username}, ваш ответ принят\n`);
-        }
-    } catch(err) {
-        res.send('Произошла ошибка на сервере');
-    }
+            Results.create({
+                sessionId,
+                userId,
+                form,
+                content, 
+                interest,
+                comment
+            })
+            .then(result => res.status(200).send(`${username}, ваш ответ принят\n`));
+     }
+    })
+    .catch(err => {
+        res.send('Произошла ошибка на сервере')
+    })
 })
 
 app.get('/sessions', (_req: Request, res: Response) => {
-    res.send(sessions);
+    Session.findAll({ attributes: ['id'] }).then(sessions => res.send(sessions));
 })
 
-app.post('/start', (req: Request, res: Response) => {
-    const sessionId = req.body.id;
-    if (sessionsId.indexOf(parseInt(sessionId)) !== -1) {
-        currentSessions.push(parseInt(sessionId));
-        res.status(200).send(`Начинаем опрос: ${sessionId}\n`);
-    } else {
-        res.status(404).send(`Опрос id=${sessionId} не существует.\nСоздайте его POST запросом /add?name=newName\n`);
-    }
-})
+// app.post('/start', (req: Request, res: Response) => {
+//     // depricated - sessions starts automaticly by date and time
+//     const sessionId = req.body.id;
+//     if (sessionsId.indexOf(parseInt(sessionId)) !== -1) {
+//         currentSessions.push(parseInt(sessionId));
+//         res.status(200).send(`Начинаем опрос: ${sessionId}\n`);
+//     } else {
+//         res.status(404).send(`Опрос id=${sessionId} не существует.\nСоздайте его POST запросом /add?name=newName\n`);
+//     }
+// }),
 
-app.post('/stop', (req: Request, res: Response) => {
-    const sessionId = req.body.id;
-    if (currentSessions.indexOf(parseInt(sessionId)) === -1) {
-        res.status(403).send(`Невозможно остановить опрос, так как он еще не был начат.\n`);
-    } else {
-        currentSessions.splice(currentSessions.indexOf(parseInt(sessionId)), 1);
-        const result = performCalc(results[sessionId]);
-        fs.writeFile(__dirname+'/results/'+sessionId+".json", JSON.stringify(result), function(err: Error) {
-            if (err) {
-                fs.mkdir(__dirname+'/results', () => {
-                    fs.writeFile(__dirname+'/results/'+sessionId+".json", JSON.stringify(result), () => {})
-                });
-            }
-        });
-        res.status(200).send(`Опрос id=${sessionId} останевлен.\nЧтобы получить результаты, используйте GET запрос /results?id=${sessionId}\n`);
-    }
-});
+// app.post('/stop', (req: Request, res: Response) => {
+//     // depricated - sessions stops automaticly
+//     const sessionId = req.body.id;
+//     if (currentSessions.indexOf(parseInt(sessionId)) === -1) {
+//         res.status(403).send(`Невозможно остановить опрос, так как он еще не был начат.\n`);
+//     } else {
+//         currentSessions.splice(currentSessions.indexOf(parseInt(sessionId)), 1);
+//         const result = performCalc(results[sessionId]);
+//         fs.writeFile(__dirname+'/results/'+sessionId+".json", JSON.stringify(result), function(err: Error) {
+//             if (err) {
+//                 fs.mkdir(__dirname+'/results', () => {
+//                     fs.writeFile(__dirname+'/results/'+sessionId+".json", JSON.stringify(result), () => {})
+//                 });
+//             }
+//         });
+//         res.status(200).send(`Опрос id=${sessionId} останевлен.\nЧтобы получить результаты, используйте GET запрос /results?id=${sessionId}\n`);
+//     }
+// }),
 
 function performCalc(results: PersonDataType[]): SessionDataType {
 
@@ -173,54 +231,38 @@ function performCalc(results: PersonDataType[]): SessionDataType {
 
 app.get('/results', (req: Request, res: Response) => {
     let sessionId = req.query.id;
-    const path = __dirname+'/results/'+sessionId+'.json'; 
-    if (fs.existsSync(path)){
-        res.download(__dirname + '/results/' + sessionId+'.json');
-    } else {
-        res.status(404).send('Опрос еще не завершен.\n');
-    }
+    // TODO get results by DB query
+    // const path = __dirname+'/results/'+sessionId+'.json'; 
+    // if (fs.existsSync(path)){
+    //     res.download(__dirname + '/results/' + sessionId+'.json');
+    // } else {
+    //     res.status(404).send('Опрос еще не завершен.\n');
+    // }
 })
 
 app.get('/current', (_req: Request, res: Response) => {
-    res.send({id: currentSessions});
+    Session.findAll({
+        attributes: ['id'],
+        where: {
+            start: {
+                [Op.lt]: new Date()
+            },
+            finish: {
+                [Op.gt]: new Date()
+            }
+        }})
+        .then(res => console.log(res));
+    // res.send({id: currentSessions});
 })
 
 app.post('/add', (req: Request, res: Response) => {
     const name = req.body.name;
-    
-    let id = Math.ceil(Math.random() * 100);
-    while (sessionsId.indexOf(id) !== -1) {
-        id = Math.ceil(Math.random() * 100);
-    }
-    sessions.push({id, name});
-    sessionsId.push(id);
-
-    res.status(200).send({id});
-})
-
-app.get('/files', (_req: Request, res: Response) => {
-    var filesList: string[] = [];
-    if (fs.existsSync(__dirname+'/results')) {
-        fs.readdir(__dirname+'/results', function (err: Error, files: string[]) {
-            files.forEach(function (file: string) {
-                if (file.endsWith('.json')) {
-                    filesList.push(file); 
-                }
-            });
-            res.send(filesList);
-        });
-    } else {
-        res.send([]);
-    }
-})
-
-app.get('/clean', (_req: Request, res: Response) => {
-    rimraf(__dirname+'/results', () => res.status(200).send('Все результаты удалены.'));
+    User.create({ name }).then(response => res.status(200).send({id: response.getDataValue('id')}));
 })
 
 app.listen(port, () => {
     console.log(`Приложение запущенно на порту ${port}`);
-});
+})
 
 // curl -d "name=Mарк" -X POST http://localhost:8080/add
-module.exports = app;
+module.exports = app

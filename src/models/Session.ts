@@ -1,22 +1,33 @@
-import {Table, Column, Model, PrimaryKey, DataType, AutoIncrement} from 'sequelize-typescript';
-import { Col } from '../../node_modules/sequelize/types/lib/utils';
+import {Table, Column, Model, PrimaryKey, DataType, AutoIncrement, BelongsTo, HasMany, ForeignKey} from 'sequelize-typescript';
+import {User} from './User'
+import { Results } from './Results';
 
-@Table
-class Session extends Model<Session> {
-    @Column(DataType.INTEGER)
+@Table({
+    createdAt: false,
+    updatedAt: false
+})
+export class Session extends Model<Session> {
     @PrimaryKey
     @AutoIncrement
+    @Column(DataType.INTEGER)
     id: number
 
     @Column(DataType.STRING)
     title: string;
 
-    @Column(DataType.NUMBER)
+    @ForeignKey(() => User)
+    @Column
     lectorId: number;
+
+    @BelongsTo(() => User)
+    lector: User;
 
     @Column(DataType.DATE)
     start: Date;
 
     @Column(DataType.DATE)
     finish: Date;
+
+    @HasMany(() => Results)
+    results: Results[];
 }

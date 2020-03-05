@@ -1,19 +1,24 @@
-import {Table, Column, Model, PrimaryKey, DataType, AutoIncrement} from 'sequelize-typescript';
+import {Table, Column, Model, PrimaryKey, DataType, AutoIncrement, BelongsTo, BelongsToMany, HasMany } from 'sequelize-typescript';
+import { Session } from './Session';
+import { Results } from './Results';
 
-@Table
-class User extends Model<User> {
+@Table({
+    createdAt: false,
+    updatedAt: false
+})
+export class User extends Model<User> {
 
-    @Column(DataType.INTEGER)
     @PrimaryKey
     @AutoIncrement
+    @Column(DataType.INTEGER)
     id: number
 
     @Column(DataType.STRING)
-    set name(value: string) {
-        this.setDataValue('name', value);
-    }
+    name: string
+    
+    @HasMany(() => Session)
+    sessions: Session[]
 
-    get name(): string {
-        return this.getDataValue('name');
-      }
+    @HasMany(() => Results)
+    results: Results[];
 }
