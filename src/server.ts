@@ -162,9 +162,7 @@ app.get('/current', (_req: Request, res: Response) => {
                 [Op.gt]: new Date()
             }
         }})
-        // TODO формат res
-        .then(res => console.log(res));
-    // res.send({id: currentSessions});
+        .then(results => res.send(results));
 })
 
 // GETTING SESSION RESULTS
