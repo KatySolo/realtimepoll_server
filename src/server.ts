@@ -19,37 +19,36 @@ const path = require('path');
 const fs = require('fs');
 var cors = require('cors');
 var bodyParser = require("body-parser");
-var rimraf = require('rimraf');
 
 var port = process.env.PORT || 8080;
 
-let sessions: SessionType[] = [{id: 17, name: "Арина (Методы атак и защиты веб-приложений)"}, {id: 24, name: "Андрей (Особенности гос. регулирования Интернета)"}];
+// let sessions: SessionType[] = [{id: 17, name: "Арина (Методы атак и защиты веб-приложений)"}, {id: 24, name: "Андрей (Особенности гос. регулирования Интернета)"}];
 // let sessionsId: number[] = [17, 24];
 // var currentSessions: number[] = [];
-var results: ResultsType = null;
+// var results: ResultsType = null;
 
-const testData = [{
-    "name":"Солодовникова Екатерина",
-    "form":"6",
-    "content":"7",
-    "interest":"3",
-    "comment":"Все было очень душевно и качественно",
-    "isLector":true
-},{
-    "name":"Боб Джонстон",
-    "form":"7",
-    "content":"6",
-    "interest":"2",
-    "comment":"Абсолютная чушь!\r\n",
-    "isLector":false
-},{
-    "name":"Марк",
-    "form":"10",
-    "content":"7",
-    "interest":"4",
-    "comment":"Уже лучше\r\n",
-    "isLector":false
-}]
+// const testData = [{
+//     "name":"Солодовникова Екатерина",
+//     "form":"6",
+//     "content":"7",
+//     "interest":"3",
+//     "comment":"Все было очень душевно и качественно",
+//     "isLector":true
+// },{
+//     "name":"Боб Джонстон",
+//     "form":"7",
+//     "content":"6",
+//     "interest":"2",
+//     "comment":"Абсолютная чушь!\r\n",
+//     "isLector":false
+// },{
+//     "name":"Марк",
+//     "form":"10",
+//     "content":"7",
+//     "interest":"4",
+//     "comment":"Уже лучше\r\n",
+//     "isLector":false
+// }]
 
 let sequelize = new Sequelize("postgres://lamravjy:l2leG_C0dEUZGhcuiT3zRpVkU4bLwJZn@rogue.db.elephantsql.com:5432/lamravjy");
 sequelize.addModels([User, Session, Results]);
@@ -61,6 +60,13 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+
+
+// ADDING USERS AND SESSIONS
+app.post('/user', (req: Request, res: Response) => {
+    const name = req.body.name;
+    User.create({ name }).then(response => res.status(200).send({id: response.getDataValue('id')}));
+})
 
 app.post('/session', (req: Request, res: Response) => {
     // TODO get params from req
@@ -82,24 +88,6 @@ app.post('/session', (req: Request, res: Response) => {
         })
     })
 })
-
-app.get('/', (_req: Request, res: Response) => {
-    const intro = `
-    <h2>Сервер для создания и проведения опросов в реальном времени </h2>
-    Адрес клиента: <a href="https://public.colo18.now.sh">https://public.colo18.now.sh</a>
-    \n
-    <h3>Список команд:</h3>
-    <ul>
-        <li>POST /add?name=TestName - добавление новой сессии про имени, возвращается id сессии</li>
-        <li>GET /sessions - получить объект со всеми сессиями</li>
-        <li>POST /start?id=45 - начать сессию</li>
-        <li>POST /stop?id=45 - остановить сессию</li>
-        <li>GET /results?id=45 - получение результатов сессии в формате .txt</li>
-        <li>GET /current - узнать текущую сессию</li>
-    </ul>
-    `;
-    res.status(200).send(intro);
-}),
 
 app.post('/results', (req: Request, res: Response) => {
     // TODO add input format type
@@ -147,39 +135,45 @@ app.post('/results', (req: Request, res: Response) => {
     })
 })
 
+// GETTING DATA FROM DB
+app.get('/', (_req: Request, res: Response) => {
+    const intro = `
+    <h2>Сервер для создания и проведения опросов в реальном времени </h2>
+    Адрес клиента: <a href="https://public.colo18.now.sh">https://public.colo18.now.sh</a>
+    \n
+    <h3>Список команд:</h3>
+    <ul>
+        <li>POST /add?name=TestName - добавление новой сессии про имени, возвращается id сессии</li>
+        <li>GET /sessions - получить объект со всеми сессиями</li>
+        <li>POST /start?id=45 - начать сессию</li>
+        <li>POST /stop?id=45 - остановить сессию</li>
+        <li>GET /results?id=45 - получение результатов сессии в формате .txt</li>
+        <li>GET /current - узнать текущую сессию</li>
+    </ul>
+    `;
+    res.status(200).send(intro);
+})
+
 app.get('/sessions', (_req: Request, res: Response) => {
     Session.findAll({ attributes: ['id'] }).then(sessions => res.send(sessions));
 })
 
-// app.post('/start', (req: Request, res: Response) => {
-//     // depricated - sessions starts automaticly by date and time
-//     const sessionId = req.body.id;
-//     if (sessionsId.indexOf(parseInt(sessionId)) !== -1) {
-//         currentSessions.push(parseInt(sessionId));
-//         res.status(200).send(`Начинаем опрос: ${sessionId}\n`);
-//     } else {
-//         res.status(404).send(`Опрос id=${sessionId} не существует.\nСоздайте его POST запросом /add?name=newName\n`);
-//     }
-// }),
+app.get('/current', (_req: Request, res: Response) => {
+    Session.findAll({
+        attributes: ['id'],
+        where: {
+            start: {
+                [Op.lt]: new Date()
+            },
+            finish: {
+                [Op.gt]: new Date()
+            }
+        }})
+        .then(res => console.log(res));
+    // res.send({id: currentSessions});
+})
 
-// app.post('/stop', (req: Request, res: Response) => {
-//     // depricated - sessions stops automaticly
-//     const sessionId = req.body.id;
-//     if (currentSessions.indexOf(parseInt(sessionId)) === -1) {
-//         res.status(403).send(`Невозможно остановить опрос, так как он еще не был начат.\n`);
-//     } else {
-//         currentSessions.splice(currentSessions.indexOf(parseInt(sessionId)), 1);
-//         const result = performCalc(results[sessionId]);
-//         fs.writeFile(__dirname+'/results/'+sessionId+".json", JSON.stringify(result), function(err: Error) {
-//             if (err) {
-//                 fs.mkdir(__dirname+'/results', () => {
-//                     fs.writeFile(__dirname+'/results/'+sessionId+".json", JSON.stringify(result), () => {})
-//                 });
-//             }
-//         });
-//         res.status(200).send(`Опрос id=${sessionId} останевлен.\nЧтобы получить результаты, используйте GET запрос /results?id=${sessionId}\n`);
-//     }
-// }),
+// GETTING SESSION RESULTS
 
 function performCalc(results: PersonDataType[]): SessionDataType {
 
@@ -240,25 +234,6 @@ app.get('/results', (req: Request, res: Response) => {
     // }
 })
 
-app.get('/current', (_req: Request, res: Response) => {
-    Session.findAll({
-        attributes: ['id'],
-        where: {
-            start: {
-                [Op.lt]: new Date()
-            },
-            finish: {
-                [Op.gt]: new Date()
-            }
-        }})
-        .then(res => console.log(res));
-    // res.send({id: currentSessions});
-})
-
-app.post('/add', (req: Request, res: Response) => {
-    const name = req.body.name;
-    User.create({ name }).then(response => res.status(200).send({id: response.getDataValue('id')}));
-})
 
 app.listen(port, () => {
     console.log(`Приложение запущенно на порту ${port}`);
