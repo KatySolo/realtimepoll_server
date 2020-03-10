@@ -1,18 +1,21 @@
 import {Request, Response} from 'express';
 import {
-    SessionType,
-    ResultsType,
     PersonDataType,
     SessionDataType,
     LectorResultType,
     ListenersResultType,
-    CommentsType
+    CommentsType,
+    ParsedDate
 } from './types'
+
+import * as moment from 'moment';
+import 'moment-timezone';
 import { Sequelize } from 'sequelize-typescript';
 import { Op } from 'sequelize';
 import { User } from './models/User';
 import { Results } from './models/Results';
 import { Session } from './models/Session';
+// import * as dotenv from 'dotenv';
 
 const express = require('express');
 const path = require('path');
@@ -20,36 +23,9 @@ const fs = require('fs');
 var cors = require('cors');
 var bodyParser = require("body-parser");
 
+// GENERAL SETTINGS
+// dotenv.config();
 var port = process.env.PORT || 8080;
-
-// let sessions: SessionType[] = [{id: 17, name: "Арина (Методы атак и защиты веб-приложений)"}, {id: 24, name: "Андрей (Особенности гос. регулирования Интернета)"}];
-// let sessionsId: number[] = [17, 24];
-// var currentSessions: number[] = [];
-// var results: ResultsType = null;
-
-// const testData = [{
-//     "name":"Солодовникова Екатерина",
-//     "form":"6",
-//     "content":"7",
-//     "interest":"3",
-//     "comment":"Все было очень душевно и качественно",
-//     "isLector":true
-// },{
-//     "name":"Боб Джонстон",
-//     "form":"7",
-//     "content":"6",
-//     "interest":"2",
-//     "comment":"Абсолютная чушь!\r\n",
-//     "isLector":false
-// },{
-//     "name":"Марк",
-//     "form":"10",
-//     "content":"7",
-//     "interest":"4",
-//     "comment":"Уже лучше\r\n",
-//     "isLector":false
-// }]
-
 let sequelize = new Sequelize("postgres://lamravjy:l2leG_C0dEUZGhcuiT3zRpVkU4bLwJZn@rogue.db.elephantsql.com:5432/lamravjy");
 sequelize.addModels([User, Session, Results]);
 sequelize.sync();
@@ -69,69 +45,86 @@ app.post('/user', (req: Request, res: Response) => {
 })
 
 app.post('/session', (req: Request, res: Response) => {
-    // TODO get params from req
+    const { lectorName, title, start, finish} = req.body;
+    console.log(start, finish);
     User.findOne({
         attributes: ['id'],
         where: {
-            name: 'Солодовникова Екатерина'
+            name: lectorName
         }
-    }).then(res => {
-        const userId = res.id;
+    }).then(userRes => {
+        const userId = userRes.id;
+        console.log(userId)
+        const {
+            year: startYear,
+            month: startMonth,
+            day: startDay,
+            hour: startHour,
+            minute: startMinute
+        } = parseDate(start);
+
+        const {
+            year: finishYear,
+            month: finishMonth,
+            day: finishDay,
+            hour: finishHour,
+            minute: finishMinute
+        } = parseDate(finish);
+
         Session.create({
-            title: 'Great session',
+            title,
             lectorId: userId,
-            start: new Date(2020, 3, 5, 12, 10),
-            finish: new Date(2020, 3, 5, 16, 10)
+            start: new Date(startYear, startMonth, startDay, startHour, startMinute),
+            finish: new Date(finishYear, finishMonth, finishDay, finishHour, finishDay, finishMinute)
         })
-        .then(res => {
-            console.log(res.id);
+        .then(result => {
+            res.send({ id: result.id }) 
         })
     })
 })
 
+function parseDate(dateStr: string): ParsedDate {
+    const parsedDate =  dateStr.split(/[- :]/);
+    return {
+        year: parseInt(parsedDate[0]),
+        month: parseInt(parsedDate[1]),
+        day: parseInt(parsedDate[2]),
+        hour: parseInt(parsedDate[3]),
+        minute: parseInt(parsedDate[4])
+    }
+}
+
 app.post('/results', (req: Request, res: Response) => {
-    // TODO add input format type
-    var {sessionId, form, content, interest, username, comment, lector} = req.body; 
-    console.log(req.body);
+    var {sessionId, form, content, interest, username, comment} = req.body; 
     let currentSessions: number[] = [];
     let userId: number = 0;
-    Session.findAll({
-        attributes: ['id'],
-        where: {
-            start: {
-                [Op.lt]: new Date()
-            },
-            finish: {
-                [Op.gt]: new Date()
-            }
-        }})
-    .then(res => {
-        currentSessions = res.map(a => a.id);
-    });
+    Promise.all([Session.findByPk(sessionId),  User.findOne({attributes: ['id'], where: { name: username }})])
+    .then(result => {
+        const session = result[0];
+        const user = result[1];
+        const curDate = moment.tz(new Date(), 'Asia/Yekaterinburg').parseZone();
+        // TODO fix same day date compare
+        // console.log(curDate);
+        // console.log(curDate >= moment(session.start));
+        // console.log(curDate <= moment(session.finish))
 
-    User.findOne({
-        attributes: ['id'],
-        where: {
-            name: username
-        }
-    }).then(user => {
-        userId = user.id;
-        if (currentSessions.find(sessionId) === undefined) {
-            res.status(403).send('Опрос еще не начался');
-        } else {
+        if (curDate >= moment(session.start) && curDate <= moment(session.finish)) {
             Results.create({
                 sessionId,
-                userId,
+                userId: user.id,
                 form,
                 content, 
                 interest,
                 comment
             })
-            .then(result => res.status(200).send(`${username}, ваш ответ принят\n`));
-     }
+            .then(result => res.status(200).send(`${username}, ваш ответ принят\n`))
+            .catch(err => res.send('Ответ уже был принят'));
+        } else {
+            res.status(403).send('Опрос еще не начался или уже закончился');
+        }
     })
     .catch(err => {
-        res.send('Произошла ошибка на сервере')
+        res.send('Произошла ошибка на сервере: ' + err)
     })
 })
 
@@ -169,75 +162,39 @@ app.get('/current', (_req: Request, res: Response) => {
                 [Op.gt]: new Date()
             }
         }})
+        // TODO формат res
         .then(res => console.log(res));
     // res.send({id: currentSessions});
 })
 
 // GETTING SESSION RESULTS
-
-function performCalc(results: PersonDataType[]): SessionDataType {
-
-    if (results === undefined) return null;
-    
-    let lectorResult: LectorResultType = {name:'', form: '', content: '', interest: ''};
-    let listenersResults: ListenersResultType = {form: 0, content: 0, interest: 0};
-    let coments: CommentsType = {};
-
-    results.forEach(result => {
-        if (result.isLector) {
-            lectorResult = {
-                name: result.name,
-                form: result.form,
-                content: result.content,
-                interest: result.interest
-            };
-        } else {
-            listenersResults.form += parseInt(result.form)
-            listenersResults.content += parseInt(result.content);
-            listenersResults.interest += parseInt(result.interest);
-        }
-        coments[result.name] = result.comment;
-    });
-
-    listenersResults.form = listenersResults.form / (results.length - 1);
-    listenersResults.content = listenersResults.content / (results.length - 1);
-    listenersResults.interest = listenersResults.interest / (results.length - 1);
-
-    const delta = {
-        form: Math.abs(parseInt(lectorResult.form) - listenersResults.form),
-        content: Math.abs(parseInt(lectorResult.content) - listenersResults.content),
-        interest: Math.abs(parseInt(lectorResult.interest) - listenersResults.interest)
-    }
-    return {
-        lector: {
-            name: lectorResult.name, 
-            form: lectorResult.form,
-            content: lectorResult.content,
-            interest: lectorResult.interest
-        }, 
-        results: listenersResults, 
-        delta,
-        coments,
-        rawResults: results
-    }
-
-}
-
 app.get('/results', (req: Request, res: Response) => {
     let sessionId = req.query.id;
-    // TODO get results by DB query
-    // const path = __dirname+'/results/'+sessionId+'.json'; 
-    // if (fs.existsSync(path)){
-    //     res.download(__dirname + '/results/' + sessionId+'.json');
-    // } else {
-    //     res.status(404).send('Опрос еще не завершен.\n');
-    // }
+    Results.findAll({
+        attributes: [
+            [Sequelize.fn('AVG', Sequelize.col('form')), 'form_avg'],
+            [Sequelize.fn('AVG', Sequelize.col('content')), 'content_avg'],
+            [Sequelize.fn('AVG', Sequelize.col('interest')), 'interest_avg']
+        ],
+        where: {
+            sessionId
+        }
+    })
+    .then(results => res.send(results))
 })
 
+app.get('/comments', (req: Request, res: Response) => {
+    let sessionId = req.query.id;
+    Results.findAll({
+        attributes: ['comment'],
+        where: {
+            sessionId
+        }
+    }).then(comments => res.send(comments));
+})
 
 app.listen(port, () => {
     console.log(`Приложение запущенно на порту ${port}`);
 })
 
-// curl -d "name=Mарк" -X POST http://localhost:8080/add
 module.exports = app
