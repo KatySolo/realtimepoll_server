@@ -1,10 +1,5 @@
 import {Request, Response} from 'express';
 import {
-    PersonDataType,
-    SessionDataType,
-    LectorResultType,
-    ListenersResultType,
-    CommentsType,
     ParsedDate
 } from './types'
 
@@ -15,16 +10,15 @@ import { Op } from 'sequelize';
 import { User } from './models/User';
 import { Results } from './models/Results';
 import { Session } from './models/Session';
-// import * as dotenv from 'dotenv';
 
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
+import * as express from 'express';
+import * as path from 'path';
+// TODO fix cors import
 var cors = require('cors');
-var bodyParser = require("body-parser");
+import * as bodyParser from "body-parser";
 
 // GENERAL SETTINGS
-// dotenv.config();
+// TODO .env files
 var port = process.env.PORT || 8080;
 let sequelize = new Sequelize("postgres://lamravjy:l2leG_C0dEUZGhcuiT3zRpVkU4bLwJZn@rogue.db.elephantsql.com:5432/lamravjy");
 sequelize.addModels([User, Session, Results]);
