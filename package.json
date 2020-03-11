@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc --build tsconfig.json",
     "test": "mocha ./tests/**.js --exit",
-    "dev": "npm run build && node ./build/server.js"
+    "start": "npm run build && node ./build/server.js"
   },
   "author": "",
   "license": "ISC",
