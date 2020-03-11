@@ -1,4 +1,4 @@
-import {Table, Column, Model, PrimaryKey, DataType, AutoIncrement, BelongsTo, BelongsToMany, HasMany } from 'sequelize-typescript';
+import { Table, Column, Model, PrimaryKey, DataType, AutoIncrement, HasMany } from 'sequelize-typescript';
 import { Session } from './Session';
 import { Results } from './Results';
 
