@@ -148,7 +148,7 @@ app.get('/sessions', (_req: Request, res: Response) => {
 // TODO current + User to get lector name
 app.get('/current', (_req: Request, res: Response) => {
     Session.findAll({
-        attributes: ['id','title'],
+        attributes: ['id', 'title'],
         where: {
             start: {
                 [Op.lt]: new Date()
