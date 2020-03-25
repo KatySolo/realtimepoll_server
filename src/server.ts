@@ -49,27 +49,11 @@ app.post('/session', (req: Request, res: Response) => {
         }
     }).then(userRes => {
         const userId = userRes.id;
-        const {
-            year: startYear,
-            month: startMonth,
-            day: startDay,
-            hour: startHour,
-            minute: startMinute
-        } = parseDate(start);
-
-        const {
-            year: finishYear,
-            month: finishMonth,
-            day: finishDay,
-            hour: finishHour,
-            minute: finishMinute
-        } = parseDate(finish);
-
         Session.create({
             title,
             lectorId: userId,
-            start: new Date(startYear, startMonth, startDay, startHour, startMinute),
-            finish: new Date(finishYear, finishMonth, finishDay, finishHour, finishDay, finishMinute)
+            start: new Date(start),
+            finish: new Date(finish)
         })
         .then(_result => {
             res.status(200).send('Сессия добавлена') 
@@ -80,16 +64,6 @@ app.post('/session', (req: Request, res: Response) => {
     })
 })
 
-function parseDate(dateStr: string): ParsedDate {
-    const parsedDate =  dateStr.split(/[- :T]/);
-    return {
-        year: parseInt(parsedDate[0]),
-        month: parseInt(parsedDate[1]),
-        day: parseInt(parsedDate[2]),
-        hour: parseInt(parsedDate[3]),
-        minute: parseInt(parsedDate[4])
-    }
-}
 
 app.post('/results', (req: Request, res: Response) => {
     var {sessionId, form, content, interest, username, comment} = req.body; 
@@ -147,8 +121,44 @@ app.get('/', (_req: Request, res: Response) => {
 app.get('/sessions', (_req: Request, res: Response) => {
     Session.findAll({
         attributes: ['id', 'title', 'start', 'finish']
-    }).then(sessions => res.send(sessions));
+    }).then(sessions => {
+        const data = proceedSessionsData(sessions)
+        res.send(data);
+    });
 })
+
+function proceedSessionsData (sessions: Session[]) {
+    const curDate = new Date();
+    return sessions.map(session => {
+        if (new Date(session.start) <= curDate
+            && new Date(session.finish) >= curDate) {
+                return {
+                    title: session.title,
+                    start: session.start,
+                    finish: session.finish,
+                    isActive: true,
+                    id: -1
+                }
+        } else if (curDate <= new Date(session.start)) {
+                return {
+                    title: session.title,
+                    start: session.start,
+                    finish: session.finish,
+                    id: -1,
+                    isActive: false
+                }
+            } else {
+                return {
+                    title: session.title,
+                    start: session.start,
+                    finish: session.finish,
+                    id: session.id,
+                    isActive: false
+                }
+            }
+        }
+    )
+}
 
 // TODO current + User to get lector name
 app.get('/current', (_req: Request, res: Response) => {
