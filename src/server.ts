@@ -72,9 +72,11 @@ app.post('/session', (req: Request, res: Response) => {
             finish: new Date(finishYear, finishMonth, finishDay, finishHour, finishDay, finishMinute)
         })
         .then(_result => {
-            res.status(200).send('Session added') 
+            res.status(200).send('Сессия добавлена') 
         })
-        .catch(_err => res.send(500).send('Session with the same title is exisiting'));
+        .catch(_err => res.send('Сессия с таким названием существует'));
+    }).catch(err => {
+        res.send('Такого пользователя не существует.')
     })
 })
 
