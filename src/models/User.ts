@@ -1,4 +1,4 @@
-import { Table, Column, Model, PrimaryKey, DataType, AutoIncrement, HasMany } from 'sequelize-typescript';
+import { Table, Column, Model, PrimaryKey, DataType, AutoIncrement, HasMany, Unique } from 'sequelize-typescript';
 import { Session } from './Session';
 import { Results } from './Results';
 
@@ -13,6 +13,7 @@ export class User extends Model<User> {
     @Column(DataType.INTEGER)
     id: number
 
+    @Unique
     @Column(DataType.STRING)
     name: string
     

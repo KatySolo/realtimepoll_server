@@ -35,20 +35,20 @@ app.use(bodyParser.json());
 // ADDING USERS AND SESSIONS
 app.post('/user', (req: Request, res: Response) => {
     const name = req.body.name;
-    User.create({ name }).then(response => res.status(200).send({id: response.getDataValue('id')}));
+    User.create({ name })
+        .then(response => res.status(200).send('User successfully added'))
+        .catch(err => res.status(500).send('User already have been added'))
 })
 
 app.post('/session', (req: Request, res: Response) => {
-    const { lectorName, title, start, finish} = req.body;
-    console.log(start, finish);
+    const { username, title, start, finish} = req.body;
     User.findOne({
         attributes: ['id'],
         where: {
-            name: lectorName
+            name: username
         }
     }).then(userRes => {
         const userId = userRes.id;
-        console.log(userId)
         const {
             year: startYear,
             month: startMonth,
@@ -71,14 +71,15 @@ app.post('/session', (req: Request, res: Response) => {
             start: new Date(startYear, startMonth, startDay, startHour, startMinute),
             finish: new Date(finishYear, finishMonth, finishDay, finishHour, finishDay, finishMinute)
         })
-        .then(result => {
-            res.send({ id: result.id }) 
+        .then(_result => {
+            res.status(200).send('Session added') 
         })
+        .catch(_err => res.send(500).send('Session with the same title is exisiting'));
     })
 })
 
 function parseDate(dateStr: string): ParsedDate {
-    const parsedDate =  dateStr.split(/[- :]/);
+    const parsedDate =  dateStr.split(/[- :T]/);
     return {
         year: parseInt(parsedDate[0]),
         month: parseInt(parsedDate[1]),
@@ -142,7 +143,9 @@ app.get('/', (_req: Request, res: Response) => {
 })
 
 app.get('/sessions', (_req: Request, res: Response) => {
-    Session.findAll({ attributes: ['id'] }).then(sessions => res.send(sessions));
+    Session.findAll({
+        attributes: ['id', 'title', 'start', 'finish']
+    }).then(sessions => res.send(sessions));
 })
 
 // TODO current + User to get lector name
@@ -164,18 +167,53 @@ app.get('/current', (_req: Request, res: Response) => {
 app.get('/results', (req: Request, res: Response) => {
     let sessionId = req.query.id;
     Results.findAll({
-        attributes: [
-            [Sequelize.fn('AVG', Sequelize.col('form')), 'form_avg'],
-            [Sequelize.fn('AVG', Sequelize.col('content')), 'content_avg'],
-            [Sequelize.fn('AVG', Sequelize.col('interest')), 'interest_avg']
-        ],
+        attributes: ['form', 'content', 'interest', 'comment'],
+        include: [{
+            model: Session,
+            attributes: ['title', 'start', 'finish']
+        }],
         where: {
             sessionId
         }
     })
-    .then(results => res.send(results))
+    .then(results => {
+        if (results !== []) {
+            const caclResults = proceedData(results);
+            res.status(200).send(caclResults);
+        } else {
+            res.status(200).send({});
+        }
+    })
 })
 
+function proceedData(results: Results[]): object {
+    const { title, start, finish } = results[0].session;
+    const count = results.length;
+    let form_sum = 0;
+    let content_sum = 0;
+    let interest_sum = 0;
+    let comments: string[] = [];
+
+    results.forEach(result => {
+        form_sum += result.form;
+        content_sum += result.content;
+        interest_sum += result.interest;
+        if (result.comment) {
+            comments.push(result.comment)
+        }
+    })
+
+    return {
+        title,
+        start,
+        finish,
+        count,
+        form: parseFloat((form_sum * 1.0 / count).toFixed(2)),
+        content: parseFloat((content_sum * 1.0 / count).toFixed(2)),
+        interest: parseFloat((interest_sum * 1.0 / count).toFixed(2)),
+        comments
+    }
+}
 app.get('/comments', (req: Request, res: Response) => {
     let sessionId = req.query.id;
     Results.findAll({
@@ -184,6 +222,18 @@ app.get('/comments', (req: Request, res: Response) => {
             sessionId
         }
     }).then(comments => res.send(comments));
+})
+
+app.get('/users', (req: Request, res: Response) => {
+    User.findAll({
+        attributes: ['name']
+    })
+        .then(users => {
+            res.send({
+                users,
+                totalNumber: users.length
+            })
+        })
 })
 
 app.listen(port, () => {
