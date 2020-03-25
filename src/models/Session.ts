@@ -1,4 +1,4 @@
-import { Table, Column, Model, PrimaryKey, DataType, AutoIncrement, BelongsTo, HasMany, ForeignKey } from 'sequelize-typescript';
+import { Table, Column, Model, PrimaryKey, DataType, AutoIncrement, BelongsTo, HasMany, ForeignKey, Unique } from 'sequelize-typescript';
 import { User } from './User'
 import { Results } from './Results';
 
@@ -12,6 +12,7 @@ export class Session extends Model<Session> {
     @Column(DataType.INTEGER)
     id: number
 
+    @Unique
     @Column(DataType.STRING)
     title: string;
 
