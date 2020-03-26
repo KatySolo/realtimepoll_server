@@ -84,9 +84,7 @@ app.post('/session', checkJwt, (req: Request, res: Response) => {
 
 
 app.post('/results', (req: Request, res: Response) => {
-    var {sessionId, form, content, interest, username, comment} = req.body; 
-    let currentSessions: number[] = [];
-    let userId: number = 0;
+    var {sessionId, form, content, interest, username, comment} = req.body;
     Promise.all([Session.findByPk(sessionId),  User.findOne({attributes: ['id'], where: { name: username }})])
     .then(result => {
         const session = result[0];
@@ -199,6 +197,8 @@ app.get('/current', (_req: Request, res: Response) => {
 // ONLY ADMIN 
 app.get('/results', (req: Request, res: Response) => {
     let sessionId = req.query.id;
+    Promise.all([
+    Session.findByPk(sessionId),
     Results.findAll({
         attributes: ['form', 'content', 'interest', 'comment'],
         include: [{
@@ -209,25 +209,33 @@ app.get('/results', (req: Request, res: Response) => {
             sessionId
         }
     })
+    ])
     .then(results => {
-        if (results !== []) {
-            const caclResults = proceedData(results);
-            res.status(200).send(caclResults);
-        } else {
-            res.status(200).send({});
-        }
+        const caclResults = proceedData(results);
+        res.status(200).send(caclResults);
     })
 })
 
-function proceedData(results: Results[]): object {
-    const { title, start, finish } = results[0].session;
-    const count = results.length;
+function proceedData(results: [Session, Results[]]): object {
+    if (results[1][0] === undefined) return {
+        title: results[0].title,
+        start: results[0].start,
+        finish: results[0].finish,
+        count: 0,
+        form: 0,
+        content: 0,
+        interest: 0,
+        comments:[]
+    }
+
+    const { title, start, finish } = results[0];
+    const count = results[1].length;
     let form_sum = 0;
     let content_sum = 0;
     let interest_sum = 0;
     let comments: string[] = [];
 
-    results.forEach(result => {
+    results[1].forEach(result => {
         form_sum += result.form;
         content_sum += result.content;
         interest_sum += result.interest;
