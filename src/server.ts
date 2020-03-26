@@ -137,7 +137,7 @@ app.get('/', (_req: Request, res: Response) => {
 })
 
 // ONLY ADMIN
-app.get('/sessions', checkJwt, (_req: Request, res: Response) => {
+app.get('/sessions', (_req: Request, res: Response) => {
     Session.findAll({
         attributes: ['id', 'title', 'start', 'finish']
     }).then(sessions => {
@@ -181,7 +181,7 @@ function proceedSessionsData (sessions: Session[]) {
 
 // TODO current + User to get lector name
 // ONLY ADMIN
-app.get('/current', checkJwt, (_req: Request, res: Response) => {
+app.get('/current', (_req: Request, res: Response) => {
     Session.findAll({
         attributes: ['id', 'title'],
         where: {
@@ -197,7 +197,7 @@ app.get('/current', checkJwt, (_req: Request, res: Response) => {
 
 // GETTING SESSION RESULTS
 // ONLY ADMIN 
-app.get('/results', checkJwt, (req: Request, res: Response) => {
+app.get('/results', (req: Request, res: Response) => {
     let sessionId = req.query.id;
     Results.findAll({
         attributes: ['form', 'content', 'interest', 'comment'],
@@ -250,7 +250,7 @@ function proceedData(results: Results[]): object {
 
 // ONLY ADMIN
 // UNESSASSARY
-app.get('/comments', checkJwt, (req: Request, res: Response) => {
+app.get('/comments', (req: Request, res: Response) => {
     let sessionId = req.query.id;
     Results.findAll({
         attributes: ['comment'],
@@ -261,7 +261,7 @@ app.get('/comments', checkJwt, (req: Request, res: Response) => {
 })
 
 // ONLY ADMIN
-app.get('/users', checkJwt, (req: Request, res: Response) => {
+app.get('/users', (req: Request, res: Response) => {
     User.findAll({
         attributes: ['name']
     })
