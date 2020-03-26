@@ -10,6 +10,8 @@ import { Op } from 'sequelize';
 import { User } from './models/User';
 import { Results } from './models/Results';
 import { Session } from './models/Session';
+import * as jwt from 'express-jwt';
+import * as jwksRsa from 'jwks-rsa';
 
 import * as express from 'express';
 import * as path from 'path';
@@ -31,16 +33,32 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+const checkJwt = jwt({
+    secret: jwksRsa.expressJwtSecret({
+      cache: true,
+      rateLimit: true,
+      jwksRequestsPerMinute: 5,
+      jwksUri: `https://katysolopoll.eu.auth0.com/.well-known/jwks.json`
+    }),
+  
+    // Validate the audience and the issuer.
+    audience: '59bqsavCkAbMf03S4pIzjttAt3dXxPRy',
+    issuer: `https://katysolopoll.eu.auth0.com/`,
+    algorithms: ['RS256']
+});
+
 
 // ADDING USERS AND SESSIONS
-app.post('/user', (req: Request, res: Response) => {
+// ONLY ADMIN
+app.post('/user', checkJwt, (req: Request, res: Response) => {
     const name = req.body.name;
     User.create({ name })
         .then(response => res.status(200).send('User successfully added'))
         .catch(err => res.status(500).send('User already have been added'))
 })
 
-app.post('/session', (req: Request, res: Response) => {
+// ONLY ADMIN
+app.post('/session', checkJwt, (req: Request, res: Response) => {
     const { username, title, start, finish} = req.body;
     User.findOne({
         attributes: ['id'],
@@ -73,7 +91,7 @@ app.post('/results', (req: Request, res: Response) => {
     .then(result => {
         const session = result[0];
         const user = result[1];
-        const curDate = moment.tz(new Date(), 'Asia/Yekaterinburg').parseZone();
+        const curDate = moment(new Date(), 'Asia/Yekaterinburg').parseZone();
         // TODO fix same day date compare
         // console.log(curDate);
         // console.log(curDate >= moment(session.start));
@@ -118,7 +136,8 @@ app.get('/', (_req: Request, res: Response) => {
     res.status(200).send(intro);
 })
 
-app.get('/sessions', (_req: Request, res: Response) => {
+// ONLY ADMIN
+app.get('/sessions', checkJwt, (_req: Request, res: Response) => {
     Session.findAll({
         attributes: ['id', 'title', 'start', 'finish']
     }).then(sessions => {
@@ -161,7 +180,8 @@ function proceedSessionsData (sessions: Session[]) {
 }
 
 // TODO current + User to get lector name
-app.get('/current', (_req: Request, res: Response) => {
+// ONLY ADMIN
+app.get('/current', checkJwt, (_req: Request, res: Response) => {
     Session.findAll({
         attributes: ['id', 'title'],
         where: {
@@ -176,7 +196,8 @@ app.get('/current', (_req: Request, res: Response) => {
 })
 
 // GETTING SESSION RESULTS
-app.get('/results', (req: Request, res: Response) => {
+// ONLY ADMIN 
+app.get('/results', checkJwt, (req: Request, res: Response) => {
     let sessionId = req.query.id;
     Results.findAll({
         attributes: ['form', 'content', 'interest', 'comment'],
@@ -226,7 +247,10 @@ function proceedData(results: Results[]): object {
         comments
     }
 }
-app.get('/comments', (req: Request, res: Response) => {
+
+// ONLY ADMIN
+// UNESSASSARY
+app.get('/comments', checkJwt, (req: Request, res: Response) => {
     let sessionId = req.query.id;
     Results.findAll({
         attributes: ['comment'],
@@ -236,7 +260,8 @@ app.get('/comments', (req: Request, res: Response) => {
     }).then(comments => res.send(comments));
 })
 
-app.get('/users', (req: Request, res: Response) => {
+// ONLY ADMIN
+app.get('/users', checkJwt, (req: Request, res: Response) => {
     User.findAll({
         attributes: ['name']
     })
