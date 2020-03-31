@@ -53,8 +53,8 @@ const checkJwt = jwt({
 app.post('/user', checkJwt, (req: Request, res: Response) => {
     const name = req.body.name;
     User.create({ name })
-        .then(response => res.status(200).send('User successfully added'))
-        .catch(err => res.status(500).send('User already have been added'))
+        .then(response => res.status(200).send('Пользователь успешно добавлен'))
+        .catch(err => res.status(500).send({text: 'Пользователь с таким именем существует'}))
 })
 
 // ONLY ADMIN
@@ -70,15 +70,16 @@ app.post('/session', checkJwt, (req: Request, res: Response) => {
         Session.create({
             title,
             lectorId: userId,
-            start: new Date(start),
-            finish: new Date(finish)
+            start,
+            finish
         })
         .then(_result => {
             res.status(200).send('Сессия добавлена') 
         })
-        .catch(_err => res.send('Сессия с таким названием существует'));
+        // TODO DONT CATCH
+        .catch(_err => res.status(500).send({ text: 'Сессия с таким названием существует' }));
     }).catch(err => {
-        res.send('Такого пользователя не существует.')
+        res.status(500).send({text:'Такого пользователя не существует.'})
     })
 })
 
@@ -105,13 +106,13 @@ app.post('/results', (req: Request, res: Response) => {
                 comment
             })
             .then(result => res.status(200).send(`${username}, ваш ответ принят\n`))
-            .catch(err => res.send('Ответ уже был принят'));
+            .catch(err => res.status(400).send({text:'Ответ уже был принят'}));
         } else {
             res.status(403).send('Опрос еще не начался или уже закончился');
         }
     })
     .catch(err => {
-        res.send('Произошла ошибка на сервере: ' + err)
+        res.status(500).send({text:'Произошла ошибка на сервере: '})
     })
 })
 
@@ -151,24 +152,24 @@ function proceedSessionsData (sessions: Session[]) {
             && new Date(session.finish) >= curDate) {
                 return {
                     title: session.title,
-                    start: session.start,
-                    finish: session.finish,
+                    start: new Date(session.start).toLocaleString(),
+                    finish: new Date(session.finish).toLocaleString(),
                     isActive: true,
                     id: -1
                 }
         } else if (curDate <= new Date(session.start)) {
                 return {
                     title: session.title,
-                    start: session.start,
-                    finish: session.finish,
+                    start: new Date(session.start).toLocaleString(),
+                    finish: new Date(session.finish).toLocaleString(),
                     id: -1,
                     isActive: false
                 }
             } else {
                 return {
                     title: session.title,
-                    start: session.start,
-                    finish: session.finish,
+                    start: new Date(session.start).toLocaleString(),
+                    finish: new Date(session.finish).toLocaleString(),
                     id: session.id,
                     isActive: false
                 }
