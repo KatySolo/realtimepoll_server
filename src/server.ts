@@ -40,9 +40,9 @@ const checkJwt = jwt({
       jwksRequestsPerMinute: 5,
       jwksUri: `https://katysolopoll.eu.auth0.com/.well-known/jwks.json`
     }),
-  
+
     // Validate the audience and the issuer.
-    audience: '59bqsavCkAbMf03S4pIzjttAt3dXxPRy',
+    audience: ['59bqsavCkAbMf03S4pIzjttAt3dXxPRy', 'http://postman-api/'],
     issuer: `https://katysolopoll.eu.auth0.com/`,
     algorithms: ['RS256']
 });
@@ -74,7 +74,7 @@ app.post('/session', checkJwt, (req: Request, res: Response) => {
             finish
         })
         .then(_result => {
-            res.status(200).send('Сессия добавлена') 
+            res.status(200).send('Сессия добавлена')
         })
         // TODO DONT CATCH
         .catch(_err => res.status(500).send({ text: 'Сессия с таким названием существует' }));
@@ -101,7 +101,7 @@ app.post('/results', (req: Request, res: Response) => {
                 sessionId,
                 userId: user.id,
                 form,
-                content, 
+                content,
                 interest,
                 comment
             })
@@ -195,7 +195,7 @@ app.get('/current', (_req: Request, res: Response) => {
 })
 
 // GETTING SESSION RESULTS
-// ONLY ADMIN 
+// ONLY ADMIN
 app.get('/results', (req: Request, res: Response) => {
     let sessionId = req.query.id;
     Promise.all([
@@ -284,6 +284,6 @@ app.get('/users', (req: Request, res: Response) => {
 
 app.listen(port, () => {
     console.log(`Приложение запущенно на порту ${port}`);
-})
+});
 
 module.exports = app
