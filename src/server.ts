@@ -20,9 +20,8 @@ var cors = require('cors');
 import * as bodyParser from "body-parser";
 
 // GENERAL SETTINGS
-// TODO .env files
-var port = process.env.PORT || 8080;
-let sequelize = new Sequelize("postgres://lamravjy:l2leG_C0dEUZGhcuiT3zRpVkU4bLwJZn@rogue.db.elephantsql.com:5432/lamravjy");
+var port = process.env.PORT;
+let sequelize = new Sequelize(process.env.DB_URL);
 sequelize.addModels([User, Session, Results]);
 sequelize.sync();
 
@@ -38,12 +37,12 @@ const checkJwt = jwt({
       cache: true,
       rateLimit: true,
       jwksRequestsPerMinute: 5,
-      jwksUri: `https://katysolopoll.eu.auth0.com/.well-known/jwks.json`
+      jwksUri: process.env.JWKS_URI
     }),
 
     // Validate the audience and the issuer.
     audience: ['59bqsavCkAbMf03S4pIzjttAt3dXxPRy', 'http://postman-api/'],
-    issuer: `https://katysolopoll.eu.auth0.com/`,
+    issuer: process.env.AUTH0_ISSUER,
     algorithms: ['RS256']
 });
 
