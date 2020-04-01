@@ -3,20 +3,20 @@ import { User } from './User';
 import { Session } from './Session';
 
 @Table({
-    createdAt: false,
-    updatedAt: false
+	createdAt: false,
+	updatedAt: false
 })
 export class Results extends Model<Results> {
 
     @AutoIncrement
     @Column(DataType.INTEGER)
-    id: number
+    id: number;
 
     @PrimaryKey
     @ForeignKey(() => Session)
     @Column
     sessionId: number;
- 
+
     @BelongsTo(() => Session)
     session: Session;
 
@@ -24,7 +24,7 @@ export class Results extends Model<Results> {
     @ForeignKey(() => User)
     @Column
     userId: number;
- 
+
     @BelongsTo(() => User)
     user: User;
 

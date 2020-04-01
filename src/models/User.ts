@@ -3,22 +3,22 @@ import { Session } from './Session';
 import { Results } from './Results';
 
 @Table({
-    createdAt: false,
-    updatedAt: false
+	createdAt: false,
+	updatedAt: false
 })
 export class User extends Model<User> {
 
     @PrimaryKey
     @AutoIncrement
     @Column(DataType.INTEGER)
-    id: number
+    id: number;
 
     @Unique
     @Column(DataType.STRING)
-    name: string
-    
+    name: string;
+
     @HasMany(() => Session)
-    sessions: Session[]
+    sessions: Session[];
 
     @HasMany(() => Results)
     results: Results[];

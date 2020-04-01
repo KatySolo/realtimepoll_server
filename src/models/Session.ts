@@ -1,16 +1,16 @@
 import { Table, Column, Model, PrimaryKey, DataType, AutoIncrement, BelongsTo, HasMany, ForeignKey, Unique } from 'sequelize-typescript';
-import { User } from './User'
+import { User } from './User';
 import { Results } from './Results';
 
 @Table({
-    createdAt: false,
-    updatedAt: false
+	createdAt: false,
+	updatedAt: false
 })
 export class Session extends Model<Session> {
     @PrimaryKey
     @AutoIncrement
     @Column(DataType.INTEGER)
-    id: number
+    id: number;
 
     @Unique
     @Column(DataType.STRING)
