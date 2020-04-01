@@ -40,9 +40,9 @@ const checkJwt = jwt({
       jwksRequestsPerMinute: 5,
       jwksUri: `https://katysolopoll.eu.auth0.com/.well-known/jwks.json`
     }),
-  
+
     // Validate the audience and the issuer.
-    audience: '59bqsavCkAbMf03S4pIzjttAt3dXxPRy',
+    audience: ['59bqsavCkAbMf03S4pIzjttAt3dXxPRy', 'http://postman-api/'],
     issuer: `https://katysolopoll.eu.auth0.com/`,
     algorithms: ['RS256']
 });
@@ -74,7 +74,7 @@ app.post('/session', checkJwt, (req: Request, res: Response) => {
             finish
         })
         .then(_result => {
-            res.status(200).send('Сессия добавлена') 
+            res.status(200).send('Сессия добавлена')
         })
         // TODO DONT CATCH
         .catch(_err => res.status(500).send({ text: 'Сессия с таким названием существует' }));
@@ -101,7 +101,7 @@ app.post('/results', (req: Request, res: Response) => {
                 sessionId,
                 userId: user.id,
                 form,
-                content, 
+                content,
                 interest,
                 comment
             })
@@ -120,17 +120,9 @@ app.post('/results', (req: Request, res: Response) => {
 app.get('/', (_req: Request, res: Response) => {
     const intro = `
     <h2>Сервер для создания и проведения опросов в реальном времени </h2>
-    Адрес клиента: <a href="https://public.colo18.now.sh">https://public.colo18.now.sh</a>
+    Адрес клиента: <a href="https://realtimepoll.now.sh">https://realtimepoll.now.sh</a>
     \n
-    <h3>Список команд:</h3>
-    <ul>
-        <li>POST /add?name=TestName - добавление новой сессии про имени, возвращается id сессии</li>
-        <li>GET /sessions - получить объект со всеми сессиями</li>
-        <li>POST /start?id=45 - начать сессию</li>
-        <li>POST /stop?id=45 - остановить сессию</li>
-        <li>GET /results?id=45 - получение результатов сессии в формате .txt</li>
-        <li>GET /current - узнать текущую сессию</li>
-    </ul>
+    Список команд = <a href="https://documenter.getpostman.com/view/10671107/SzYZ1yUT?version=latest"> Документация Postman</a>
     `;
     res.status(200).send(intro);
 })
@@ -195,7 +187,7 @@ app.get('/current', (_req: Request, res: Response) => {
 })
 
 // GETTING SESSION RESULTS
-// ONLY ADMIN 
+// ONLY ADMIN
 app.get('/results', (req: Request, res: Response) => {
     let sessionId = req.query.id;
     Promise.all([
@@ -284,6 +276,6 @@ app.get('/users', (req: Request, res: Response) => {
 
 app.listen(port, () => {
     console.log(`Приложение запущенно на порту ${port}`);
-})
+});
 
 module.exports = app
