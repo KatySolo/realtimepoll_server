@@ -50,8 +50,8 @@ const checkJwt = jwt({
 app.post('/user', checkJwt, (req: Request, res: Response) => {
 	const name = req.body.name;
 	User.create({ name })
-		.then(() => res.status(200).send('Пользователь успешно добавлен'))
-		.catch(() => res.status(500).send({ text: 'Пользователь с таким именем существует' }));
+		.then(() => res.status(201).send('Пользователь успешно добавлен'))
+		.catch(() => res.status(409).send({ text: 'Пользователь с таким именем существует' }));
 });
 
 // ONLY ADMIN
@@ -71,12 +71,12 @@ app.post('/session', checkJwt, (req: Request, res: Response) => {
 			finish
 		})
 			.then(() => {
-				res.status(200).send('Сессия добавлена');
+				res.status(201).send('Сессия добавлена');
 			})
 		// TODO DONT CATCH
-			.catch(() => res.status(500).send({ text: 'Сессия с таким названием существует' }));
+			.catch(() => res.status(409).send({ text: 'Сессия с таким названием существует' }));
 	}).catch(() => {
-		res.status(500).send({ text: 'Такого пользователя не существует.' });
+		res.status(404).send({ text: 'Такого пользователя не существует.' });
 	});
 });
 
@@ -89,9 +89,6 @@ app.post('/results', (req: Request, res: Response) => {
 			const user = result[1];
 			const curDate = moment(new Date(), 'Asia/Yekaterinburg').parseZone();
 			// TODO fix same day date compare
-			// console.log(curDate);
-			// console.log(curDate >= moment(session.start));
-			// console.log(curDate <= moment(session.finish))
 
 			if (curDate >= moment(session.start) && curDate <= moment(session.finish)) {
 				Results.create({
@@ -102,14 +99,14 @@ app.post('/results', (req: Request, res: Response) => {
 					interest,
 					comment
 				})
-					.then(() => res.status(200).send(`${username}, ваш ответ принят\n`))
-					.catch(() => res.status(400).send({ text: 'Ответ уже был принят' }));
+					.then(() => res.status(201).send(`${username}, ваш ответ принят\n`))
+					.catch(() => res.status(208).send({ text: 'Ответ уже был принят' }));
 			} else {
 				res.status(403).send('Опрос еще не начался или уже закончился');
 			}
 		})
 		.catch(() => {
-			res.status(500).send({ text: 'Произошла ошибка на сервере: ' });
+			res.status(500).send({ text: 'Такого пользователя не существует' });
 		});
 });
 
