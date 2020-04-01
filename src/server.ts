@@ -120,17 +120,9 @@ app.post('/results', (req: Request, res: Response) => {
 app.get('/', (_req: Request, res: Response) => {
     const intro = `
     <h2>Сервер для создания и проведения опросов в реальном времени </h2>
-    Адрес клиента: <a href="https://public.colo18.now.sh">https://public.colo18.now.sh</a>
+    Адрес клиента: <a href="https://realtimepoll.now.sh">https://realtimepoll.now.sh</a>
     \n
-    <h3>Список команд:</h3>
-    <ul>
-        <li>POST /add?name=TestName - добавление новой сессии про имени, возвращается id сессии</li>
-        <li>GET /sessions - получить объект со всеми сессиями</li>
-        <li>POST /start?id=45 - начать сессию</li>
-        <li>POST /stop?id=45 - остановить сессию</li>
-        <li>GET /results?id=45 - получение результатов сессии в формате .txt</li>
-        <li>GET /current - узнать текущую сессию</li>
-    </ul>
+    Список команд = <a href="https://documenter.getpostman.com/view/10671107/SzYZ1yUT?version=latest"> Документация Postman</a>
     `;
     res.status(200).send(intro);
 })
