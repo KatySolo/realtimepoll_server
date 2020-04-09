@@ -99,7 +99,7 @@ app.post('/results', (req: Request, res: Response) => {
 					interest,
 					comment
 				})
-					.then(() => res.status(201).send(`${username}, ваш ответ принят\n`))
+					.then(() => res.status(201).send({text: `${username}, ваш ответ принят\n`}))
 					.catch(() => res.status(208).send({ text: 'Ответ уже был принят' }));
 			} else {
 				res.status(403).send('Опрос еще не начался или уже закончился');
