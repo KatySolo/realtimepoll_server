@@ -99,7 +99,7 @@ app.post('/results', (req: Request, res: Response) => {
 					interest,
 					comment
 				})
-					.then(() => res.status(201).send({text: `${username}, ваш ответ принят\n`}))
+					.then(() => res.status(201).send({ text: `${username}, ваш ответ принят\n` }))
 					.catch(() => res.status(208).send({ text: 'Ответ уже был принят' }));
 			} else {
 				res.status(403).send('Опрос еще не начался или уже закончился');
@@ -124,7 +124,8 @@ app.get('/', (_req: Request, res: Response) => {
 // ONLY ADMIN
 app.get('/sessions', (_req: Request, res: Response) => {
 	Session.findAll({
-		attributes: ['id', 'title', 'start', 'finish']
+		attributes: ['id', 'title', 'start', 'finish'],
+		include: [{ model: User, attributes: ['name'] }]
 	}).then(sessions => {
 		const data = proceedSessionsData(sessions);
 		res.send(data);
@@ -138,6 +139,7 @@ function proceedSessionsData(sessions: Session[]) {
                 && new Date(session.finish) >= curDate) {
 			return {
 				title: session.title,
+				lector: session.lector.name,
 				start: new Date(session.start).toLocaleString(),
 				finish: new Date(session.finish).toLocaleString(),
 				isActive: true,
@@ -146,6 +148,7 @@ function proceedSessionsData(sessions: Session[]) {
 		} else if (curDate <= new Date(session.start)) {
 			return {
 				title: session.title,
+				lector: session.lector.name,
 				start: new Date(session.start).toLocaleString(),
 				finish: new Date(session.finish).toLocaleString(),
 				id: -1,
@@ -154,6 +157,7 @@ function proceedSessionsData(sessions: Session[]) {
 		} else {
 			return {
 				title: session.title,
+				lector: session.lector.name,
 				start: new Date(session.start).toLocaleString(),
 				finish: new Date(session.finish).toLocaleString(),
 				id: session.id,
@@ -169,6 +173,7 @@ function proceedSessionsData(sessions: Session[]) {
 app.get('/current', (_req: Request, res: Response) => {
 	Session.findAll({
 		attributes: ['id', 'title'],
+		include: [{ model: User, attributes: ['name'] }],
 		where: {
 			start: {
 				[Op.lt]: new Date()
@@ -186,7 +191,7 @@ app.get('/current', (_req: Request, res: Response) => {
 app.get('/results', (req: Request, res: Response) => {
 	let sessionId = req.query.id;
 	Promise.all([
-		Session.findByPk(sessionId),
+		Session.findByPk(sessionId, { include: [{ model: User, attributes: ['name'] }] }),
 		Results.findAll({
 			attributes: ['form', 'content', 'interest', 'comment'],
 			include: [{
@@ -207,6 +212,7 @@ app.get('/results', (req: Request, res: Response) => {
 function proceedData(results: [Session, Results[]]): object {
 	if (results[1][0] === undefined) return {
 		title: results[0].title,
+		lector: results[0].lector.name,
 		start: results[0].start,
 		finish: results[0].finish,
 		count: 0,
@@ -216,7 +222,7 @@ function proceedData(results: [Session, Results[]]): object {
 		comments: []
 	};
 
-	const { title, start, finish } = results[0];
+	const { title, start, finish, lector } = results[0];
 	const count = results[1].length;
 	let form_sum = 0;
 	let content_sum = 0;
@@ -234,6 +240,7 @@ function proceedData(results: [Session, Results[]]): object {
 
 	return {
 		title,
+		lector: lector.name,
 		start,
 		finish,
 		count,
