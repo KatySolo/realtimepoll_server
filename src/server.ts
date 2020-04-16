@@ -125,7 +125,10 @@ app.get('/', (_req: Request, res: Response) => {
 app.get('/sessions', (_req: Request, res: Response) => {
 	Session.findAll({
 		attributes: ['id', 'title', 'start', 'finish'],
-		include: [{ model: User, attributes: ['name'] }]
+		include: [{ 
+			model: User, 
+			attributes: ['name'] 
+		}]
 	}).then(sessions => {
 		const data = proceedSessionsData(sessions);
 		res.send(data);
@@ -168,12 +171,14 @@ function proceedSessionsData(sessions: Session[]) {
 	);
 }
 
-// TODO current + User to get lector name
 // ONLY ADMIN
 app.get('/current', (_req: Request, res: Response) => {
 	Session.findAll({
 		attributes: ['id', 'title'],
-		include: [{ model: User, attributes: ['name'] }],
+		include: [{ 
+			model: User, 
+			attributes: ['name'] 
+		}],
 		where: {
 			start: {
 				[Op.lt]: new Date()
@@ -191,7 +196,12 @@ app.get('/current', (_req: Request, res: Response) => {
 app.get('/results', (req: Request, res: Response) => {
 	let sessionId = req.query.id;
 	Promise.all([
-		Session.findByPk(sessionId, { include: [{ model: User, attributes: ['name'] }] }),
+		Session.findByPk(sessionId, { 
+			include: [{ 
+				model: User, 
+				attributes: ['name'] 
+			}] 
+		}),
 		Results.findAll({
 			attributes: ['form', 'content', 'interest', 'comment'],
 			include: [{
