@@ -1,7 +1,6 @@
 // eslint-disable-next-line no-unused-vars
 import { Request, Response } from 'express';
 
-import * as moment from 'moment';
 import 'moment-timezone';
 import { Sequelize } from 'sequelize-typescript';
 import { Op } from 'sequelize';
@@ -67,8 +66,8 @@ app.post('/session', checkJwt, (req: Request, res: Response) => {
 		Session.create({
 			title,
 			lectorId: userId,
-			start,
-			finish
+			start: new Date(start),
+			finish: new Date(finish)
 		})
 			.then(() => {
 				res.status(201).send('Сессия добавлена');
@@ -87,10 +86,10 @@ app.post('/results', (req: Request, res: Response) => {
 		.then(result => {
 			const session = result[0];
 			const user = result[1];
-			const curDate = moment(new Date(), 'Asia/Yekaterinburg').parseZone();
+			const curDate = new Date();
 			// TODO fix same day date compare
 
-			if (curDate >= moment(session.start) && curDate <= moment(session.finish)) {
+			if (curDate >= new Date(session.start) && curDate <= new Date(session.finish)) {
 				Results.create({
 					sessionId,
 					userId: user.id,
@@ -125,9 +124,9 @@ app.get('/', (_req: Request, res: Response) => {
 app.get('/sessions', (_req: Request, res: Response) => {
 	Session.findAll({
 		attributes: ['id', 'title', 'start', 'finish'],
-		include: [{ 
-			model: User, 
-			attributes: ['name'] 
+		include: [{
+			model: User,
+			attributes: ['name']
 		}]
 	}).then(sessions => {
 		const data = proceedSessionsData(sessions);
@@ -143,8 +142,8 @@ function proceedSessionsData(sessions: Session[]) {
 			return {
 				title: session.title,
 				lector: session.lector.name,
-				start: new Date(session.start).toLocaleString(),
-				finish: new Date(session.finish).toLocaleString(),
+				start: new Date(session.start),
+				finish: new Date(session.finish),
 				isActive: true,
 				id: -1
 			};
@@ -152,8 +151,8 @@ function proceedSessionsData(sessions: Session[]) {
 			return {
 				title: session.title,
 				lector: session.lector.name,
-				start: new Date(session.start).toLocaleString(),
-				finish: new Date(session.finish).toLocaleString(),
+				start: new Date(session.start),
+				finish: new Date(session.finish),
 				id: -1,
 				isActive: false
 			};
@@ -161,8 +160,8 @@ function proceedSessionsData(sessions: Session[]) {
 			return {
 				title: session.title,
 				lector: session.lector.name,
-				start: new Date(session.start).toLocaleString(),
-				finish: new Date(session.finish).toLocaleString(),
+				start: new Date(session.start),
+				finish: new Date(session.finish),
 				id: session.id,
 				isActive: false
 			};
@@ -175,9 +174,9 @@ function proceedSessionsData(sessions: Session[]) {
 app.get('/current', (_req: Request, res: Response) => {
 	Session.findAll({
 		attributes: ['id', 'title'],
-		include: [{ 
-			model: User, 
-			attributes: ['name'] 
+		include: [{
+			model: User,
+			attributes: ['name']
 		}],
 		where: {
 			start: {
@@ -196,11 +195,11 @@ app.get('/current', (_req: Request, res: Response) => {
 app.get('/results', (req: Request, res: Response) => {
 	let sessionId = req.query.id;
 	Promise.all([
-		Session.findByPk(sessionId, { 
-			include: [{ 
-				model: User, 
-				attributes: ['name'] 
-			}] 
+		Session.findByPk(sessionId, {
+			include: [{
+				model: User,
+				attributes: ['name']
+			}]
 		}),
 		Results.findAll({
 			attributes: ['form', 'content', 'interest', 'comment'],
