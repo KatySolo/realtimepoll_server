@@ -285,6 +285,69 @@ app.get('/users', (req: Request, res: Response) => {
 		});
 });
 
+app.delete('/user', (req: Request, res: Response) => {
+	const { id } = req.body;
+	Promise.all([
+		User.destroy({
+			where: { id }
+		}),
+		Session.findAll({
+			where: { lectorId: id },
+			attributes: ['id']
+		}).then((sessions) => {
+			sessions.forEach((session) => {
+				deleteSession(session.id);
+			});
+		})
+	])
+		.then(() => res.status(200).send('Пользователь успешно удалён'))
+		.catch(() => res.status(500).send('Такого пользователя не существует'));
+});
+
+app.delete('/session', (req: Request, res: Response) => {
+	const { id } = req.body;
+	deleteSession(id)
+		.then(() => res.status(200).send('Сессия успешно удалена'))
+		.catch(() => res.status(500).send('Такой сессии не существует'));
+});
+
+function deleteSession(id:number) {
+	return Promise.all([
+		Session.destroy({
+			where: { id }
+		}),
+		Results.destroy({ 
+			where: { sessionId: id }
+		})
+	]);
+}
+
+app.patch('/user', (req: Request, res: Response) => {
+	const { id, name } = req.body;
+	User.update(
+		{ name },
+		{ 
+			where: { id }
+		}
+	)
+		.then(() => res.status(200).send('Имя пользователя успешно изменено'))
+		.catch(() => res.status(500).send('Что-то пошло не так'));
+});
+
+app.patch('/session', (req: Request, res: Response) => {
+	const { id, title, start, finish, lectorId } = req.body;
+	Session.update({
+		title,
+		lectorId,
+		start,
+		finish
+	}, {
+		where: { id }
+	})
+		.then(() => res.status(200).send('Сессия успешно обновлена'))
+		.catch(() => res.status(500).send('Что-то пошло не так'));
+});
+
 app.listen(port, () => {
 	console.log(`Приложение запущенно на порту ${port}`);
 });
