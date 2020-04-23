@@ -6,15 +6,22 @@
   "scripts": {
     "build": "tsc --build tsconfig.json",
     "test": "mocha ./tests/**.js --exit",
-    "dev": "npx eslint . --ext .ts && npm run start",
+    "startdb": "docker run --rm --name florettepsql -e POSTGRES_PASSWORD=kek -p 5432:5432 -d postgres >>docker.log 2>&1 && echo Created new florettepsql || echo Already running florettepsql",
+    "localdb": "docker ps -a >>docker.log 2>&1 && npm run startdb || echo Please install and launch docker && exit 1",
+    "dev": "cross-env PORT=7777 DB_URL=postgres://postgres:kek@localhost:5432/postgres npm start",
+    "lint": "npx eslint . --ext .ts",
     "start": "npm run build && node -r dotenv/config ./build/server.js ./build/server.js"
   },
   "author": "",
   "license": "ISC",
   "eslintConfig": {
     "parser": "@typescript-eslint/parser",
-    "plugins": ["@typescript-eslint"],
-    "extends": ["plugin:@typescript-eslint/recommended"]
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "extends": [
+      "plugin:@typescript-eslint/recommended"
+    ]
   },
   "dependencies": {
     "@types/bluebird": "^3.5.29",
@@ -26,6 +33,7 @@
     "@types/validator": "^12.0.1",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
+    "cross-env": "^7.0.2",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-jwt": "^5.3.1",
