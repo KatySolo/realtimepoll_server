@@ -8,7 +8,7 @@
     "test": "mocha ./tests/**.js --exit",
     "startdb": "docker run --rm --name florettepsql -e POSTGRES_PASSWORD=kek -p 5432:5432 -d postgres >>docker.log 2>&1 && echo Created new florettepsql || echo Already running florettepsql",
     "localdb": "docker ps -a >>docker.log 2>&1 && npm run startdb || echo Please install and launch docker && exit 1",
-    "dev": "cross-env PORT=7777 DB_URL=postgres://postgres:kek@localhost:5432/postgres npm start",
+    "dev": "cross-env DOTENV_CONFIG_PATH=.env.local npm start",
     "lint": "npx eslint . --ext .ts",
     "start": "npm run build && node -r dotenv/config ./build/server.js ./build/server.js"
   },
