@@ -303,10 +303,17 @@ app.delete('/user/:id', (req: Request, res: Response) => {
 		.then(() => res.status(200).send('Пользователь успешно удалён'));
 });
 
-app.delete('/session/:id', (req: Request, res: Response) => {
-	const id = parseInt(req.params.id);
-	deleteSession(id)
-		.then(() => res.status(200).send('Сессия успешно удалена'));
+app.delete('/session/:title', (req: Request, res: Response) => {
+	const title = req.params.title;
+
+	Session.findOne({
+		where: { title },
+		attributes: ['id']
+	})
+		.then((session) => {
+			deleteSession(session.id);
+		})
+		.then(() => res.status(200).send('Сессия успешно удалена'));	
 });
 
 function deleteSession(id:number) {
