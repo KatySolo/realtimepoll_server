@@ -275,7 +275,7 @@ app.get('/comments', (req: Request, res: Response) => {
 // ONLY ADMIN
 app.get('/users', (req: Request, res: Response) => {
 	User.findAll({
-		attributes: ['name']
+		attributes: ['name', 'id']
 	})
 		.then(users => {
 			res.send({
