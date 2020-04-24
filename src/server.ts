@@ -285,8 +285,8 @@ app.get('/users', (req: Request, res: Response) => {
 		});
 });
 
-app.delete('/user', (req: Request, res: Response) => {
-	const { id } = req.body;
+app.delete('/user/:id', (req: Request, res: Response) => {
+	const id = parseInt(req.params.id);
 	Promise.all([
 		User.destroy({
 			where: { id }
@@ -300,15 +300,13 @@ app.delete('/user', (req: Request, res: Response) => {
 			});
 		})
 	])
-		.then(() => res.status(200).send('Пользователь успешно удалён'))
-		.catch(() => res.status(500).send('Такого пользователя не существует'));
+		.then(() => res.status(200).send('Пользователь успешно удалён'));
 });
 
-app.delete('/session', (req: Request, res: Response) => {
-	const { id } = req.body;
+app.delete('/session/:id', (req: Request, res: Response) => {
+	const id = parseInt(req.params.id);
 	deleteSession(id)
-		.then(() => res.status(200).send('Сессия успешно удалена'))
-		.catch(() => res.status(500).send('Такой сессии не существует'));
+		.then(() => res.status(200).send('Сессия успешно удалена'));
 });
 
 function deleteSession(id:number) {
