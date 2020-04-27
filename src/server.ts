@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 
 import 'moment-timezone';
 import { Sequelize } from 'sequelize-typescript';
-import { Op } from 'sequelize';
+import { Op, UniqueConstraintError, ForeignKeyConstraintError } from 'sequelize';
 import { User } from './models/User';
 import { Results } from './models/Results';
 import { Session } from './models/Session';
@@ -336,7 +336,7 @@ app.patch('/user', (req: Request, res: Response) => {
 		}
 	)
 		.then(() => res.status(200).send('Имя пользователя успешно изменено'))
-		.catch(() => res.status(500).send('Что-то пошло не так'));
+		.catch(() => res.status(500).send('Пользователь с таким именем уже существует'));
 });
 
 app.patch('/session', (req: Request, res: Response) => {
@@ -349,8 +349,20 @@ app.patch('/session', (req: Request, res: Response) => {
 	}, {
 		where: { id }
 	})
-		.then(() => res.status(200).send('Сессия успешно обновлена'))
-		.catch(() => res.status(500).send('Что-то пошло не так'));
+		.then(() => {
+			res.status(200).send('Сессия успешно обновлена');
+		})
+		.catch((err) => {
+			if (err instanceof UniqueConstraintError) {
+				res.status(500).send('Сессия с таким именем уже существует');
+			}
+			else if (err instanceof ForeignKeyConstraintError) {
+				res.status(500).send('Такого пользователя не существует');
+			}
+			else{
+				res.status(500).send('Неверный формат даты');
+			}			
+		});
 });
 
 app.listen(port, () => {
