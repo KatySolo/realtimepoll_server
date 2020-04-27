@@ -313,7 +313,8 @@ app.delete('/session/:title', (req: Request, res: Response) => {
 		.then((session) => {
 			deleteSession(session.id);
 		})
-		.then(() => res.status(200).send('Сессия успешно удалена'));	
+		.then(() => res.status(200).send('Сессия успешно удалена'))
+		.catch(() => res.status(500).send('Сессия с таким именем не найдена'));	
 });
 
 function deleteSession(id:number) {
