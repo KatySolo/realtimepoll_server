@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 
 import 'moment-timezone';
 import { Sequelize } from 'sequelize-typescript';
-import { Op } from 'sequelize';
+import { Op, UniqueConstraintError, ForeignKeyConstraintError } from 'sequelize';
 import { User } from './models/User';
 import { Results } from './models/Results';
 import { Session } from './models/Session';
@@ -275,13 +275,94 @@ app.get('/comments', (req: Request, res: Response) => {
 // ONLY ADMIN
 app.get('/users', (req: Request, res: Response) => {
 	User.findAll({
-		attributes: ['name']
+		attributes: ['name', 'id']
 	})
 		.then(users => {
 			res.send({
 				users,
 				totalNumber: users.length
 			});
+		});
+});
+
+app.delete('/user/:id', (req: Request, res: Response) => {
+	const id = parseInt(req.params.id);
+	Promise.all([
+		User.destroy({
+			where: { id }
+		}),
+		Session.findAll({
+			where: { lectorId: id },
+			attributes: ['id']
+		}).then((sessions) => {
+			sessions.forEach((session) => {
+				deleteSession(session.id);
+			});
+		})
+	])
+		.then(() => res.status(200).send('Пользователь успешно удалён'));
+});
+
+app.delete('/session/:title', (req: Request, res: Response) => {
+	const title = req.params.title;
+
+	Session.findOne({
+		where: { title },
+		attributes: ['id']
+	})
+		.then((session) => {
+			deleteSession(session.id);
+		})
+		.then(() => res.status(200).send('Сессия успешно удалена'))
+		.catch(() => res.status(500).send('Сессия с таким именем не найдена'));	
+});
+
+function deleteSession(id:number) {
+	return Promise.all([
+		Session.destroy({
+			where: { id }
+		}),
+		Results.destroy({ 
+			where: { sessionId: id }
+		})
+	]);
+}
+
+app.patch('/user', (req: Request, res: Response) => {
+	const { id, name } = req.body;
+	User.update(
+		{ name },
+		{ 
+			where: { id }
+		}
+	)
+		.then(() => res.status(200).send('Имя пользователя успешно изменено'))
+		.catch(() => res.status(500).send('Пользователь с таким именем уже существует'));
+});
+
+app.patch('/session', (req: Request, res: Response) => {
+	const { id, title, start, finish, lectorId } = req.body;
+	Session.update({
+		title,
+		lectorId,
+		start,
+		finish
+	}, {
+		where: { id }
+	})
+		.then(() => {
+			res.status(200).send('Сессия успешно обновлена');
+		})
+		.catch((err) => {
+			if (err instanceof UniqueConstraintError) {
+				res.status(500).send('Сессия с таким именем уже существует');
+			}
+			else if (err instanceof ForeignKeyConstraintError) {
+				res.status(500).send('Такого пользователя не существует');
+			}
+			else{
+				res.status(500).send('Неверный формат даты');
+			}			
 		});
 });
 
