@@ -115,7 +115,7 @@ app.get('/', (_req: Request, res: Response) => {
     <h2>Сервер для создания и проведения опросов в реальном времени </h2>
     Адрес клиента: <a href="https://realtimepoll.now.sh">https://realtimepoll.now.sh</a>
     \n
-    Список команд = <a href="https://documenter.getpostman.com/view/10671107/SzYZ1yUT?version=latest"> Документация Postman</a>
+    Список команд = <a href="https://documenter.getpostman.com/view/11420744/SzmjzuvW?version=latest"> Документация Postman</a>
     `;
 	res.status(200).send(intro);
 });
